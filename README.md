@@ -1,5 +1,7 @@
 # tmux-disk-revamped
 
+[![Tests](https://github.com/gufranco/tmux-disk-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/gufranco/tmux-disk-revamped/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Disk usage for your tmux status bar, without ever blocking the status render.
 
 The value is read from a tmux server user-option and returns instantly, while a
@@ -43,9 +45,11 @@ Press `prefix + I` to install.
 | `@disk_revamped_{low,medium,high}_{fg,bg}_color` | empty | tier colors |
 | `@disk_revamped_enable_logging` | `0` | set to `1` to log under `~/.tmux/disk-revamped-logs` |
 
-## Platform support
+## Support by platform and architecture
 
-macOS uses `df -g`, Linux uses `df -BG`. Sizes are reported in gigabytes.
+Works on every supported platform and architecture with built-in tools, no extra
+package required. macOS (Intel and Apple Silicon) uses `df -g`; Linux (x86_64 and
+arm64) uses `df -BG`. Sizes are reported in gigabytes.
 
 ## License
 
