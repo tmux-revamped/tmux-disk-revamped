@@ -1,0 +1,52 @@
+# tmux-disk-revamped
+
+Disk usage for your tmux status bar, without ever blocking the status render.
+
+The value is read from a tmux server user-option and returns instantly, while a
+detached worker runs `df` in the background. No temp files are used.
+
+Built from
+[tmux-plugin-template](https://github.com/gufranco/tmux-plugin-template).
+
+## Placeholders
+
+| Placeholder | Output |
+|-------------|--------|
+| `#{disk_percentage}` | used space, for example `55%` |
+| `#{disk_icon}` | a tier icon for the current usage |
+| `#{disk_fg_color}` / `#{disk_bg_color}` | colors for the current tier |
+| `#{disk_used}` | used space in gigabytes, for example `100G` |
+| `#{disk_total}` | total space in gigabytes, for example `466G` |
+
+## Install
+
+With [TPM](https://github.com/tmux-plugins/tpm):
+
+```tmux
+set -g @plugin 'gufranco/tmux-disk-revamped'
+set -g status-right '#{disk_icon} #{disk_percentage}'
+```
+
+Press `prefix + I` to install.
+
+## Configuration
+
+| Option | Default | Meaning |
+|--------|---------|---------|
+| `@disk_revamped_mount` | `/` | the mount point to report |
+| `@disk_revamped_interval` | `30` | seconds a reading stays fresh |
+| `@disk_revamped_percentage_format` | `%s%%` | format for the value |
+| `@disk_revamped_size_format` | `%sG` | format for used and total sizes |
+| `@disk_revamped_medium_thresh` | `70` | usage percent for the medium tier |
+| `@disk_revamped_high_thresh` | `90` | usage percent for the high tier |
+| `@disk_revamped_{low,medium,high}_icon` | `▰▱▱`, `▰▰▱`, `▰▰▰` | tier icons |
+| `@disk_revamped_{low,medium,high}_{fg,bg}_color` | empty | tier colors |
+| `@disk_revamped_enable_logging` | `0` | set to `1` to log under `~/.tmux/disk-revamped-logs` |
+
+## Platform support
+
+macOS uses `df -g`, Linux uses `df -BG`. Sizes are reported in gigabytes.
+
+## License
+
+[MIT](LICENSE), copyright Gustavo Franco.
