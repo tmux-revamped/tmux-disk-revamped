@@ -9,6 +9,7 @@ setup() {
   source "${BATS_TEST_DIRNAME}/../../../src/disk.sh"
   read_disk() { echo "55 100 466"; }
   read_disk_io() { echo ""; }
+  read_all_disks() { printf '/ 55%%\n/home 30%%\n'; }
 }
 
 teardown() {
@@ -84,6 +85,11 @@ teardown() {
   [[ "${output}" == "5.0MB/s" ]]
   run main write
   [[ "${output}" == "1.0MB/s" ]]
+}
+
+@test "disk.sh dispatcher - all subcommand joins every disk" {
+  run main all
+  [[ "${output}" == "/ 55%, /home 30%" ]]
 }
 
 @test "disk.sh dispatcher - unknown subcommand produces no output" {

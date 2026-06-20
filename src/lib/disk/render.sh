@@ -61,6 +61,18 @@ disk_render_size() {
   printf "${fmt}" "${1}"
 }
 
+disk_render_all() {
+  [[ -z "${1}" ]] && { echo ""; return 0; }
+  local sep out="" line
+  sep=$(get_tmux_option "@disk_revamped_separator" ", ")
+  while IFS= read -r line; do
+    [[ -z "${line}" ]] && continue
+    [[ -n "${out}" ]] && out="${out}${sep}"
+    out="${out}${line}"
+  done <<< "${1}"
+  echo "${out}"
+}
+
 export -f _disk_level
 export -f _disk_value_level
 export -f disk_render_percentage
@@ -68,3 +80,4 @@ export -f disk_render_icon
 export -f disk_render_fg
 export -f disk_render_bg
 export -f disk_render_size
+export -f disk_render_all

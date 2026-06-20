@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disk read and write I/O rate placeholders `#{disk_read}` and `#{disk_write}`
   from /proc/diskstats deltas on Linux, with previous counters kept in tmux
   options so no temp file is needed.
+- Multi-disk placeholder `#{disk_all}` listing every mounted real disk, joined by
+  a configurable separator.
 
 ## [1.0.0] - 2026-06-19
 

@@ -26,6 +26,14 @@ teardown() {
   [[ -z "$(disk_render_percentage "")" ]]
 }
 
+@test "render.sh - disk_render_all joins disks and honors a separator" {
+  [[ -z "$(disk_render_all "")" ]]
+  local txt=$'/ 55%\n/home 30%'
+  [[ "$(disk_render_all "${txt}")" == "/ 55%, /home 30%" ]]
+  set_tmux_option "@disk_revamped_separator" " | "
+  [[ "$(disk_render_all "${txt}")" == "/ 55% | /home 30%" ]]
+}
+
 @test "render.sh - disk_render_percentage uses the default format" {
   [[ "$(disk_render_percentage 55)" == "55%" ]]
 }

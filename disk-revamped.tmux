@@ -17,6 +17,7 @@ placeholders=(
   "\#{disk_total}"
   "\#{disk_read}"
   "\#{disk_write}"
+  "\#{disk_all}"
 )
 
 commands=(
@@ -28,6 +29,7 @@ commands=(
   "#(${DISK_CMD} total)"
   "#(${DISK_CMD} read)"
   "#(${DISK_CMD} write)"
+  "#(${DISK_CMD} all)"
 )
 
 interpolate() {

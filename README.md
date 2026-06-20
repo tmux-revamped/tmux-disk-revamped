@@ -21,6 +21,7 @@ Built from
 | `#{disk_total}` | total space in gigabytes, for example `466G` |
 | `#{disk_read}` | disk read rate, Linux only, for example `1.2MB/s` |
 | `#{disk_write}` | disk write rate, Linux only |
+| `#{disk_all}` | every mounted real disk, for example `/ 55%, /home 30%` |
 
 ## Install
 
@@ -45,6 +46,7 @@ Press `prefix + I` to install.
 | `@disk_revamped_high_thresh` | `90` | usage percent for the high tier |
 | `@disk_revamped_{low,medium,high}_icon` | `▰▱▱`, `▰▰▱`, `▰▰▰` | tier icons |
 | `@disk_revamped_{low,medium,high}_{fg,bg}_color` | empty | tier colors |
+| `@disk_revamped_separator` | `, ` | separator between disks in `#{disk_all}` |
 | `@disk_revamped_enable_logging` | `0` | set to `1` to log under `~/.tmux/disk-revamped-logs` |
 
 ## Support by platform and architecture

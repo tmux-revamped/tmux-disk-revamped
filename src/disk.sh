@@ -34,6 +34,7 @@ disk_refresh() {
   cache_set percent "${pct}"
   cache_set used "${used}"
   cache_set total "${total}"
+  cache_set all "$(read_all_disks)"
   disk_refresh_io
 }
 
@@ -81,6 +82,7 @@ main() {
     total)      disk_render_size "$(cache_get total)" ;;
     read)       cache_get read ;;
     write)      cache_get write ;;
+    all)        disk_render_all "$(cache_get all)" ;;
     *)          return 0 ;;
   esac
 }

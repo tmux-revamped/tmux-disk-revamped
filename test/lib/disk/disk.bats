@@ -73,9 +73,36 @@ teardown() {
   [[ -z "$(read_disk_io)" ]]
 }
 
+@test "disk.sh - disks_from_df_macos lists real disks and skips volumes" {
+  local txt=$'Filesystem Size Used Avail Capacity iused ifree %iused Mounted\n/dev/disk3 466Gi 200Gi 250Gi 55% 1 2 1% /\n/dev/disk4 100Gi 10Gi 90Gi 10% 1 2 1% /Volumes/USB'
+  run disks_from_df_macos "${txt}"
+  [[ "${lines[0]}" == "/ 55%" ]]
+  [[ "${#lines[@]}" -eq 1 ]]
+}
+
+@test "disk.sh - disks_from_df_linux lists real disks and skips boot" {
+  local txt=$'Filesystem Size Used Avail Use% Mounted\n/dev/sda1 100G 55G 45G 55% /\n/dev/sda2 1G 100M 900M 10% /boot'
+  run disks_from_df_linux "${txt}"
+  [[ "${lines[0]}" == "/ 55%" ]]
+  [[ "${#lines[@]}" -eq 1 ]]
+}
+
+@test "disk.sh - read_all_disks reads df on Linux" {
+  _PLATFORM_OS_CACHE="Linux"
+  _read_df_h() { printf 'Filesystem Size Used Avail Use%% Mounted\n/dev/sda1 100G 55G 45G 55%% /\n'; }
+  [[ "$(read_all_disks)" == "/ 55%" ]]
+}
+
+@test "disk.sh - read_all_disks reads df on macOS" {
+  _PLATFORM_OS_CACHE="Darwin"
+  _read_df_h() { printf 'h\n/dev/disk3 466Gi 200Gi 250Gi 55%% 1 2 1%% /\n'; }
+  [[ "$(read_all_disks)" == "/ 55%" ]]
+}
+
 @test "disk.sh - host-probe seams are callable" {
   run _read_df_macos /
   run _read_df_linux /
   run _read_diskstats
+  run _read_df_h
   true
 }
