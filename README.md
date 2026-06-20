@@ -1,14 +1,29 @@
-# tmux-disk-revamped
+<div align="center">
+
+<h1>tmux-disk-revamped</h1>
+
+**Disk usage for your tmux status bar, without ever blocking the status render.**
 
 [![Tests](https://github.com/gufranco/tmux-disk-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/gufranco/tmux-disk-revamped/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Disk usage for your tmux status bar, without ever blocking the status render.
+</div>
 
-The value is read from a tmux server user-option and returns instantly, while a
-detached worker runs `df` in the background. No temp files are used.
+**9** placeholders · **2** platforms · **93** tests · **95%+** coverage
 
-Built from
-[tmux-plugin-template](https://github.com/gufranco/tmux-plugin-template).
+Disk usage for your tmux status bar, without ever blocking the status render. The value is read from a tmux server user-option and returns instantly, while a detached worker runs `df` in the background. No temp files are used.
+
+Built from [tmux-plugin-template](https://github.com/gufranco/tmux-plugin-template).
+
+<table>
+<tr>
+<td><strong>Non-blocking</strong><br/>The render reads a cached user-option and returns instantly while a detached worker refreshes in the background.</td>
+<td><strong>No temp files</strong><br/>Cached values and I/O counters live in tmux server options, so nothing touches the filesystem.</td>
+</tr>
+<tr>
+<td><strong>Cross-platform</strong><br/>Works on macOS and Linux with built-in tools, no extra package required.</td>
+<td><strong>Tested</strong><br/>93 tests with 95%+ coverage run on every push.</td>
+</tr>
+</table>
 
 ## Placeholders
 
@@ -58,6 +73,14 @@ arm64) uses `df -BG`. Sizes are reported in gigabytes.
 Disk read and write I/O rates come from `/proc/diskstats` deltas and are Linux
 only. macOS does not expose cumulative per-disk read and write byte counters
 without a blocking sampler, so the I/O placeholders stay empty there.
+
+## Development
+
+```bash
+make test
+make lint
+make coverage
+```
 
 ## License
 
