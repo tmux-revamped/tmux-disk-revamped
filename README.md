@@ -4,7 +4,7 @@
 
 **Disk usage for your tmux status bar, without ever blocking the status render.**
 
-[![Tests](https://github.com/gufranco/tmux-disk-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/gufranco/tmux-disk-revamped/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](CHANGELOG.md)
+[![Tests](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](CHANGELOG.md)
 
 </div>
 
@@ -12,7 +12,7 @@
 
 Disk usage for your tmux status bar, without ever blocking the status render. The value is read from a tmux server user-option and returns instantly, while a detached worker runs `df` in the background. No temp files are used.
 
-Built from [tmux-plugin-template](https://github.com/gufranco/tmux-plugin-template).
+Built from [tmux-plugin-template](https://github.com/tmux-revamped/tmux-plugin-template).
 
 <table>
 <tr>
@@ -43,7 +43,7 @@ Built from [tmux-plugin-template](https://github.com/gufranco/tmux-plugin-templa
 With [TPM](https://github.com/tmux-plugins/tpm):
 
 ```tmux
-set -g @plugin 'gufranco/tmux-disk-revamped'
+set -g @plugin 'tmux-revamped/tmux-disk-revamped'
 set -g status-right '#{disk_icon} #{disk_percentage}'
 ```
 
