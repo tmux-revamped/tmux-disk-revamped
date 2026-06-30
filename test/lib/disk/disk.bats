@@ -16,11 +16,11 @@ teardown() {
 }
 
 @test "disk.sh - disk_parse_df parses macOS df output" {
-  [[ "$(disk_parse_df "${MAC_DF}")" == "22 100 466" ]]
+  [[ "$(disk_parse_df "${MAC_DF}")" == "22 100 466 366" ]]
 }
 
 @test "disk.sh - disk_parse_df parses Linux df output" {
-  [[ "$(disk_parse_df "${LINUX_DF}")" == "40 40 100" ]]
+  [[ "$(disk_parse_df "${LINUX_DF}")" == "40 40 100 60" ]]
 }
 
 @test "disk.sh - disk_parse_df is empty without a data line" {
@@ -30,13 +30,13 @@ teardown() {
 @test "disk.sh - read_disk uses macOS df" {
   _PLATFORM_OS_CACHE="Darwin"
   _read_df_macos() { echo "${MAC_DF}"; }
-  [[ "$(read_disk /)" == "22 100 466" ]]
+  [[ "$(read_disk /)" == "22 100 466 366" ]]
 }
 
 @test "disk.sh - read_disk uses Linux df" {
   _PLATFORM_OS_CACHE="Linux"
   _read_df_linux() { echo "${LINUX_DF}"; }
-  [[ "$(read_disk /)" == "40 40 100" ]]
+  [[ "$(read_disk /)" == "40 40 100 60" ]]
 }
 
 @test "disk.sh - read_disk is empty on an unknown platform" {
@@ -100,9 +100,77 @@ teardown() {
 }
 
 @test "disk.sh - host-probe seams are callable" {
+  df() { echo "stub"; }
+  cat() { echo "stub"; }
+  diskutil() { echo "stub"; }
   run _read_df_macos /
   run _read_df_linux /
   run _read_diskstats
   run _read_df_h
+  run _read_df_inodes_macos /
+  run _read_df_inodes_linux /
+  run _read_diskutil /
   true
+}
+
+@test "disk.sh - disk_parse_df captures available space" {
+  [[ "$(disk_parse_df "${MAC_DF}")" == "22 100 466 366" ]]
+  [[ "$(disk_parse_df "${LINUX_DF}")" == "40 40 100 60" ]]
+}
+
+@test "disk.sh - disk_parse_inodes reads the macOS %iused column" {
+  [[ "$(disk_parse_inodes "${MAC_DF}")" == "1" ]]
+}
+
+@test "disk.sh - disk_parse_inodes reads the Linux IUse% column" {
+  local txt=$'Filesystem Inodes IUsed IFree IUse% Mounted on\n/dev/sda1 6500000 1200000 5300000 19% /'
+  [[ "$(disk_parse_inodes "${txt}")" == "19" ]]
+}
+
+@test "disk.sh - disk_parse_inodes is empty without a data line" {
+  [[ -z "$(disk_parse_inodes "Filesystem Inodes IUsed")" ]]
+}
+
+@test "disk.sh - disk_parse_purgeable scales gigabytes" {
+  [[ "$(disk_parse_purgeable "Purgeable Space:  12.3 GB (13192M)")" == "12" ]]
+}
+
+@test "disk.sh - disk_parse_purgeable scales megabytes down to whole gigabytes" {
+  [[ "$(disk_parse_purgeable "Purgeable Space: 2048 MB")" == "2" ]]
+}
+
+@test "disk.sh - disk_parse_purgeable is empty without a purgeable line" {
+  [[ -z "$(disk_parse_purgeable "Free Space: 100 GB")" ]]
+}
+
+@test "disk.sh - disk_parse_purgeable is empty when the line has no figure" {
+  [[ -z "$(disk_parse_purgeable "Purgeable Space: unknown")" ]]
+}
+
+@test "disk.sh - read_inodes uses macOS df on Darwin" {
+  _PLATFORM_OS_CACHE="Darwin"
+  _read_df_inodes_macos() { echo "${MAC_DF}"; }
+  [[ "$(read_inodes /)" == "1" ]]
+}
+
+@test "disk.sh - read_inodes uses Linux df on Linux" {
+  _PLATFORM_OS_CACHE="Linux"
+  _read_df_inodes_linux() { printf 'Filesystem Inodes IUsed IFree IUse%% Mounted\n/dev/sda1 100 19 81 19%% /\n'; }
+  [[ "$(read_inodes /)" == "19" ]]
+}
+
+@test "disk.sh - read_inodes is empty on an unknown platform" {
+  _PLATFORM_OS_CACHE="Plan9"
+  [[ -z "$(read_inodes /)" ]]
+}
+
+@test "disk.sh - read_purgeable parses diskutil on macOS" {
+  _PLATFORM_OS_CACHE="Darwin"
+  _read_diskutil() { echo "Purgeable Space: 8 GB"; }
+  [[ "$(read_purgeable /)" == "8" ]]
+}
+
+@test "disk.sh - read_purgeable is empty off macOS" {
+  _PLATFORM_OS_CACHE="Linux"
+  [[ -z "$(read_purgeable /)" ]]
 }

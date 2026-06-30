@@ -55,10 +55,15 @@ disk_render_bg() {
 
 disk_render_size() {
   [[ -z "${1}" ]] && { echo ""; return 0; }
+  local v="${1}"
+  if [[ "${v}" =~ ^[0-9]+$ ]] && (( v >= 1024 )); then
+    awk -v g="${v}" 'BEGIN { printf "%.1fT", g / 1024 }'
+    return 0
+  fi
   local fmt
   fmt=$(get_tmux_option "@disk_revamped_size_format" "%sG")
   # shellcheck disable=SC2059
-  printf "${fmt}" "${1}"
+  printf "${fmt}" "${v}"
 }
 
 disk_render_all() {
@@ -81,3 +86,14 @@ export -f disk_render_fg
 export -f disk_render_bg
 export -f disk_render_size
 export -f disk_render_all
+
+# disk_render_inodes PCT -> "<pct>%" inode usage, empty on cold start.
+disk_render_inodes() {
+  [[ -z "${1}" ]] && { echo ""; return 0; }
+  local fmt
+  fmt=$(get_tmux_option "@disk_revamped_inodes_format" "i%s%%")
+  # shellcheck disable=SC2059
+  printf "${fmt}" "${1}"
+}
+
+export -f disk_render_inodes

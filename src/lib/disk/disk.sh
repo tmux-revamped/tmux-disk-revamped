@@ -16,13 +16,14 @@ source "${_DISK_LIB_DIR}/../utils/platform.sh"
 # Reads the data line that carries the capacity percentage, so a wrapped header
 # does not matter. Used and total are reduced to plain integers in gigabytes.
 disk_parse_df() {
-  local line total used pct
+  local line total used pct avail
   line=$(printf '%s\n' "${1}" | grep -E '[0-9]+%' | head -1)
   [[ -n "${line}" ]] || { echo ""; return 0; }
   total=$(awk '{ print $2 }' <<< "${line}" | tr -dc '0-9')
   used=$(awk '{ print $3 }' <<< "${line}" | tr -dc '0-9')
   pct=$(grep -oE '[0-9]+%' <<< "${line}" | head -1 | tr -d '%')
-  echo "${pct:-0} ${used:-0} ${total:-0}"
+  avail=$(awk '{ print $4 }' <<< "${line}" | tr -dc '0-9')
+  echo "${pct:-0} ${used:-0} ${total:-0} ${avail:-0}"
 }
 
 # diskstats_io TEXT -> "<read_kb> <write_kb>" cumulative from /proc/diskstats.
@@ -106,3 +107,66 @@ export -f _read_df_h
 export -f read_disk
 export -f read_disk_io
 export -f read_all_disks
+
+# disk_parse_inodes TEXT -> "<pct>" inode usage from `df -i` output.
+# The inode-use percentage is the last percent column on the data line: on Linux
+# it is IUse%, on macOS it is %iused which follows the capacity percent.
+disk_parse_inodes() {
+  local line pct
+  line=$(printf '%s\n' "${1}" | grep -E '[0-9]+%' | head -1)
+  [[ -n "${line}" ]] || { echo ""; return 0; }
+  pct=$(grep -oE '[0-9]+%' <<< "${line}" | tail -1 | tr -d '%')
+  echo "${pct:-0}"
+}
+
+# disk_parse_purgeable TEXT -> "<gb>" APFS purgeable space in gigabytes.
+# Reads the "Purgeable Space" line from `diskutil info` output. Values reported
+# in MB are scaled down to whole gigabytes; anything else yields empty.
+disk_parse_purgeable() {
+  local line num unit
+  line=$(printf '%s\n' "${1}" | grep -iE 'purgeable' | head -1)
+  [[ -n "${line}" ]] || { echo ""; return 0; }
+  num=$(grep -oE '[0-9]+(\.[0-9]+)?[[:space:]]*(GB|MB|G|M)' <<< "${line}" | head -1)
+  [[ -n "${num}" ]] || { echo ""; return 0; }
+  unit=$(grep -oE '(GB|MB|G|M)' <<< "${num}" | head -1)
+  num=$(grep -oE '[0-9]+(\.[0-9]+)?' <<< "${num}" | head -1)
+  case "${unit}" in
+    MB|M) awk -v n="${num}" 'BEGIN { printf "%d", n / 1024 }' ;;
+    *)    awk -v n="${num}" 'BEGIN { printf "%d", n }' ;;
+  esac
+}
+
+# Inode and purgeable host-probe seams.
+_read_df_inodes_macos() { df -i "${1}" 2>/dev/null; }
+_read_df_inodes_linux() { df -i "${1}" 2>/dev/null; }
+_read_diskutil() { diskutil info "${1}" 2>/dev/null; }
+
+# read_inodes MOUNT -> "<pct>" inode usage, empty on an unknown platform.
+read_inodes() {
+  local mount="${1:-/}"
+  if is_macos; then
+    disk_parse_inodes "$(_read_df_inodes_macos "${mount}")"
+  elif is_linux; then
+    disk_parse_inodes "$(_read_df_inodes_linux "${mount}")"
+  else
+    echo ""
+  fi
+}
+
+# read_purgeable MOUNT -> "<gb>" APFS purgeable space, empty off macOS.
+read_purgeable() {
+  local mount="${1:-/}"
+  if is_macos; then
+    disk_parse_purgeable "$(_read_diskutil "${mount}")"
+  else
+    echo ""
+  fi
+}
+
+export -f disk_parse_inodes
+export -f disk_parse_purgeable
+export -f _read_df_inodes_macos
+export -f _read_df_inodes_linux
+export -f _read_diskutil
+export -f read_inodes
+export -f read_purgeable

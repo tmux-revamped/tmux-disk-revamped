@@ -18,6 +18,13 @@ placeholders=(
   "\#{disk_read}"
   "\#{disk_write}"
   "\#{disk_all}"
+  "\#{disk_free}"
+  "\#{disk_inodes}"
+  "\#{disk_purgeable}"
+  "\#{disk_graph}"
+  "\#{disk_fill_rate}"
+  "\#{disk_full_eta}"
+  "\#{disk_mounts}"
 )
 
 commands=(
@@ -30,6 +37,13 @@ commands=(
   "#(${DISK_CMD} read)"
   "#(${DISK_CMD} write)"
   "#(${DISK_CMD} all)"
+  "#(${DISK_CMD} free)"
+  "#(${DISK_CMD} inodes)"
+  "#(${DISK_CMD} purgeable)"
+  "#(${DISK_CMD} graph)"
+  "#(${DISK_CMD} fill_rate)"
+  "#(${DISK_CMD} full_eta)"
+  "#(${DISK_CMD} mounts)"
 )
 
 interpolate() {
@@ -52,3 +66,18 @@ chmod +x "${DISK_CMD}" 2>/dev/null || true
 
 update_option "status-left"
 update_option "status-right"
+
+# Optional popup key bindings. display-popup needs tmux 3.2 or newer. A binding
+# is created only when the user sets the corresponding key option.
+bind_popup() {
+  local key="${1}"
+  local cmd="${2}"
+  [[ -n "${key}" ]] || return 0
+  tmux bind-key "${key}" run-shell "${DISK_CMD} ${cmd}"
+}
+
+popup_key=$(tmux show-option -gqv "@disk_revamped_popup_key")
+eat_key=$(tmux show-option -gqv "@disk_revamped_eat_key")
+
+bind_popup "${popup_key}" "popup"
+bind_popup "${eat_key}" "eat"

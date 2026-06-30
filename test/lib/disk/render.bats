@@ -131,3 +131,22 @@ teardown() {
   set_tmux_option "@disk_revamped_size_format" "%s GiB"
   [[ "$(disk_render_size 100)" == "100 GiB" ]]
 }
+
+@test "render.sh - disk_render_size auto-scales gigabytes to terabytes" {
+  [[ "$(disk_render_size 2048)" == "2.0T" ]]
+  [[ "$(disk_render_size 1536)" == "1.5T" ]]
+}
+
+@test "render.sh - disk_render_size keeps small values in gigabytes" {
+  [[ "$(disk_render_size 512)" == "512G" ]]
+}
+
+@test "render.sh - disk_render_inodes formats the percentage" {
+  [[ -z "$(disk_render_inodes "")" ]]
+  [[ "$(disk_render_inodes 42)" == "i42%" ]]
+}
+
+@test "render.sh - disk_render_inodes honors a custom format" {
+  set_tmux_option "@disk_revamped_inodes_format" "inodes %s%%"
+  [[ "$(disk_render_inodes 42)" == "inodes 42%" ]]
+}
