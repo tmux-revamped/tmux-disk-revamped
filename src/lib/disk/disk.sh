@@ -61,15 +61,16 @@ disks_from_df_linux() {
 }
 
 # Host-probe seams.
-_read_df_macos() { df -g "${1}" 2>/dev/null; }
+_read_df_macos() { /bin/df -g "${1}" 2>/dev/null; }
 _read_df_linux() { df -BG "${1}" 2>/dev/null; }
 _read_diskstats() { cat /proc/diskstats 2>/dev/null; }
 _read_df_h() { df -h 2>/dev/null; }
+_read_df_h_macos() { /bin/df -h 2>/dev/null; }
 
 # read_all_disks -> "<mount> <pct>" per mounted real disk, one per line.
 read_all_disks() {
   if is_macos; then
-    disks_from_df_macos "$(_read_df_h)"
+    disks_from_df_macos "$(_read_df_h_macos)"
   elif is_linux; then
     disks_from_df_linux "$(_read_df_h)"
   fi
@@ -104,6 +105,7 @@ export -f _read_df_macos
 export -f _read_df_linux
 export -f _read_diskstats
 export -f _read_df_h
+export -f _read_df_h_macos
 export -f read_disk
 export -f read_disk_io
 export -f read_all_disks

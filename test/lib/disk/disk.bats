@@ -174,3 +174,10 @@ teardown() {
   _PLATFORM_OS_CACHE="Linux"
   [[ -z "$(read_purgeable /)" ]]
 }
+
+@test "disk lib - macOS reads the system df, which GNU coreutils cannot shadow" {
+  run declare -f _read_df_macos _read_df_h_macos
+
+  [[ "${output}" == *"/bin/df -g"* ]]
+  [[ "${output}" == *"/bin/df -h"* ]]
+}

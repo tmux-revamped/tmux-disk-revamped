@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- On macOS every value rendered empty when GNU coreutils came first on PATH,
+  because the BSD-only `df -g` reached GNU `df`, which rejects it. The macOS
+  readers now call `/bin/df`.
+
 ### Added
 
 - Metric labels. `@disk_revamped_<metric>_label` prints an icon or word before a value

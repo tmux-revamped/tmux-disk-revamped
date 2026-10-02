@@ -60,7 +60,7 @@ Press `prefix + I` to install.
 
 | Option | Default | Meaning |
 |--------|---------|---------|
-| `@disk_revamped_mount` | `/` | the mount point to report |
+| `@disk_revamped_mount` | `/` | the mount point to report; on macOS the sealed system volume `/` reports only its own small share, so set `/System/Volumes/Data` to see the space your files use |
 | `@disk_revamped_interval` | `30` | seconds a reading stays fresh |
 | `@disk_revamped_percentage_format` | `%s%%` | format for the value |
 | `@disk_revamped_size_format` | `%sG` | format for used and total sizes |
