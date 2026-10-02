@@ -78,6 +78,26 @@ Press `prefix + I` to install.
 | `@disk_revamped_eat_path` | the mount | directory the space scan starts from |
 | `@disk_revamped_enable_logging` | `0` | set to `1` to log under `~/.tmux/disk-revamped-logs` |
 
+## Labels
+
+Every value placeholder can carry a label, an icon or word printed before the value only when the value is not empty, so each figure on the bar says what it is. Set `@disk_revamped_<metric>_label` for one metric, or `@disk_revamped_icons` to `nerd` to label every metric from a Nerd Font set. A metric's own label wins over the set, and setting it to `''` removes the set's label for that metric. The default, `ascii`, adds no labels, so existing bars render unchanged.
+
+| Metric | `nerd` glyph |
+|--------|--------------|
+| `percentage` | U+F02CA |
+| `used` | U+F01BC |
+| `total` | U+F01BC |
+| `free` | U+F0770 |
+| `read` | U+F01DA |
+| `write` | U+F0552 |
+| `inodes` | U+F0645 |
+| `purgeable` | U+F00E2 |
+| `graph` | U+F07B1 |
+| `fill_rate` | U+F0535 |
+| `full_eta` | U+F051F |
+| `mounts` | U+F0253 |
+| `all` | U+F0253 |
+
 ## Theme color suggestions
 
 The defaults leave the tier colors empty and rely on the 16 ANSI names remapped by the active tmux theme, so the plugin matches any theme out of the box. For exact hex values, copy one block below. The low tier maps to green, the medium tier to yellow, and the high tier to red.

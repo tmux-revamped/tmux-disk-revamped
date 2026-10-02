@@ -130,20 +130,8 @@ disk_tick() {
   cache_refresh_if_stale percent "$(disk_max_age)" disk_refresh
 }
 
-main() {
-  local cmd="${1:-}"
-
-  case "${cmd}" in
-    refresh)   disk_refresh; return 0 ;;
-    card)      disk_card; return 0 ;;
-    eat_view)  disk_eat_view; return 0 ;;
-    doctor)    disk_doctor; return 0 ;;
-    popup)     disk_show_popup; return 0 ;;
-    eat)       disk_show_eat; return 0 ;;
-  esac
-
-  disk_tick
-
+disk_render_metric() {
+  local cmd="${1}"
   case "${cmd}" in
     percentage) disk_render_percentage "$(cache_get percent)" ;;
     icon)       disk_render_icon "$(cache_get percent)" ;;
@@ -163,6 +151,79 @@ main() {
     all)        disk_render_all "$(cache_get all)" ;;
     *)          return 0 ;;
   esac
+}
+
+disk_is_labelled() {
+  case "${1}" in
+    percentage | used | total | free | read | write | inodes | purgeable | graph | fill_rate | full_eta | mounts | all) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+disk_nerd_label() {
+  case "${1}" in
+    percentage) printf '\xf3\xb0\x8b\x8a' ;;
+    used) printf '\xf3\xb0\x86\xbc' ;;
+    total) printf '\xf3\xb0\x86\xbc' ;;
+    free) printf '\xf3\xb0\x9d\xb0' ;;
+    read) printf '\xf3\xb0\x87\x9a' ;;
+    write) printf '\xf3\xb0\x95\x92' ;;
+    inodes) printf '\xf3\xb0\x99\x85' ;;
+    purgeable) printf '\xf3\xb0\x83\xa2' ;;
+    graph) printf '\xf3\xb0\x9e\xb1' ;;
+    fill_rate) printf '\xf3\xb0\x94\xb5' ;;
+    full_eta) printf '\xf3\xb0\x94\x9f' ;;
+    mounts) printf '\xf3\xb0\x89\x93' ;;
+    all) printf '\xf3\xb0\x89\x93' ;;
+    *) printf '' ;;
+  esac
+}
+
+disk_option_exists() {
+  [[ -n "$(tmux show-option -gq "${1}" 2>/dev/null)" ]]
+}
+
+disk_label() {
+  local option="@disk_revamped_${1}_label"
+  if disk_option_exists "${option}"; then
+    tmux show-option -gqv "${option}" 2>/dev/null
+  elif [[ "$(get_tmux_option "@disk_revamped_icons" "ascii")" == "nerd" ]]; then
+    disk_nerd_label "${1}"
+  fi
+}
+
+disk_labelled() {
+  local metric="${1}" value="${2}" label
+  [[ -n "${value}" ]] || return 0
+  label="$(disk_label "${metric}")"
+  if [[ -n "${label}" ]]; then
+    printf '%s %s\n' "${label}" "${value}"
+  else
+    printf '%s\n' "${value}"
+  fi
+}
+
+main() {
+  local cmd="${1:-}"
+
+  case "${cmd}" in
+    refresh)   disk_refresh; return 0 ;;
+    card)      disk_card; return 0 ;;
+    eat_view)  disk_eat_view; return 0 ;;
+    doctor)    disk_doctor; return 0 ;;
+    popup)     disk_show_popup; return 0 ;;
+    eat)       disk_show_eat; return 0 ;;
+  esac
+
+  disk_tick
+
+  local out
+  out="$(disk_render_metric "${cmd}")"
+  if disk_is_labelled "${cmd}"; then
+    disk_labelled "${cmd}" "${out}"
+  elif [[ -n "${out}" ]]; then
+    printf '%s\n' "${out}"
+  fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

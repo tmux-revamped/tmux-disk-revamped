@@ -245,3 +245,58 @@ teardown() {
   run main bg_color
   [[ "${output}" == "#[bg=red]" ]]
 }
+
+@test "disk.sh dispatcher - a metric renders without a label by default" {
+  run disk_labelled percentage "42"
+
+  [[ "${output}" == "42" ]]
+}
+
+@test "disk.sh dispatcher - the nerd icon set labels a metric" {
+  set_tmux_option "@disk_revamped_icons" "nerd"
+
+  run disk_labelled percentage "42"
+
+  [[ "${output}" == $'\xf3\xb0\x8b\x8a'" 42" ]]
+}
+
+@test "disk.sh dispatcher - a set label beats the icon set" {
+  set_tmux_option "@disk_revamped_icons" "nerd"
+  set_tmux_option "@disk_revamped_percentage_label" "X"
+
+  run disk_labelled percentage "42"
+
+  [[ "${output}" == "X 42" ]]
+}
+
+@test "disk.sh dispatcher - an empty label removes the icon set's label" {
+  set_tmux_option "@disk_revamped_icons" "nerd"
+  disk_option_exists() { [[ "${1}" == "@disk_revamped_percentage_label" ]]; }
+
+  run disk_labelled percentage "42"
+
+  [[ "${output}" == "42" ]]
+}
+
+@test "disk.sh dispatcher - an empty value renders nothing even with a label" {
+  set_tmux_option "@disk_revamped_icons" "nerd"
+
+  run disk_labelled percentage ""
+
+  [ -z "${output}" ]
+}
+
+@test "disk.sh dispatcher - only value metrics carry a label" {
+  run disk_is_labelled fg_color
+
+  [ "${status}" -eq 1 ]
+}
+
+@test "disk.sh dispatcher - main labels a rendered metric" {
+  set_tmux_option "@disk_revamped_icons" "nerd"
+  disk_render_metric() { echo "42"; }
+
+  run main percentage
+
+  [[ "${output}" == $'\xf3\xb0\x8b\x8a'" 42" ]]
+}
