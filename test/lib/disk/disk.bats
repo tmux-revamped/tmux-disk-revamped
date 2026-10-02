@@ -95,7 +95,7 @@ teardown() {
 
 @test "disk.sh - read_all_disks reads df on macOS" {
   _PLATFORM_OS_CACHE="Darwin"
-  _read_df_h() { printf 'h\n/dev/disk3 466Gi 200Gi 250Gi 55%% 1 2 1%% /\n'; }
+  _read_df_h_macos() { printf 'h\n/dev/disk3 466Gi 200Gi 250Gi 55%% 1 2 1%% /\n'; }
   [[ "$(read_all_disks)" == "/ 55%" ]]
 }
 
