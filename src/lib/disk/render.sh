@@ -57,7 +57,7 @@ disk_render_size() {
   [[ -z "${1}" ]] && { echo ""; return 0; }
   local v="${1}"
   if [[ "${v}" =~ ^[0-9]+$ ]] && (( v >= 1024 )); then
-    awk -v g="${v}" 'BEGIN { printf "%.1fT", g / 1024 }'
+    LC_ALL=C awk -v g="${v}" 'BEGIN { printf "%.1fT", g / 1024 }'
     return 0
   fi
   local fmt

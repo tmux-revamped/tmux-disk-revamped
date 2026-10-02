@@ -12,7 +12,7 @@ _DISK_REVAMPED_TREND_LOADED=1
 disk_fill_rate_compute() {
   [[ "${1}" =~ ^[0-9]+$ && "${2}" =~ ^[0-9]+$ && "${3}" =~ ^[0-9]+$ ]] || { echo ""; return 0; }
   (( ${3} <= 0 )) && { echo ""; return 0; }
-  awk -v now="${1}" -v prev="${2}" -v secs="${3}" 'BEGIN { printf "%.1f", (now - prev) * 3600.0 / secs }'
+  LC_ALL=C awk -v now="${1}" -v prev="${2}" -v secs="${3}" 'BEGIN { printf "%.1f", (now - prev) * 3600.0 / secs }'
 }
 
 # disk_render_fill_rate GBPERHOUR -> "+2.1G/h" or "-1.0G/h". Empty when the rate
@@ -21,7 +21,7 @@ disk_render_fill_rate() {
   local r="${1}"
   [[ -n "${r}" ]] || { echo ""; return 0; }
   [[ "${r}" =~ ^-?[0-9]+(\.[0-9]+)?$ ]] || { echo ""; return 0; }
-  awk -v r="${r}" 'BEGIN { if (r == 0) { exit } printf "%s%.1fG/h", (r > 0 ? "+" : ""), r }'
+  LC_ALL=C awk -v r="${r}" 'BEGIN { if (r == 0) { exit } printf "%s%.1fG/h", (r > 0 ? "+" : ""), r }'
 }
 
 # disk_eta_compute AVAIL_GB GBPERHOUR -> whole hours until full. Empty unless the

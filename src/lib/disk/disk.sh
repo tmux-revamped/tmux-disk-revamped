@@ -29,7 +29,7 @@ disk_parse_df() {
 # diskstats_io TEXT -> "<read_kb> <write_kb>" cumulative from /proc/diskstats.
 # Sectors are 512 bytes, so sectors / 2 is kilobytes.
 diskstats_io() {
-  printf '%s\n' "${1}" | awk '{ r += $6; w += $10 } END { print int(r / 2), int(w / 2) }'
+  printf '%s\n' "${1}" | LC_ALL=C awk '{ r += $6; w += $10 } END { print int(r / 2), int(w / 2) }'
 }
 
 # disk_rate_compute CURRENT PREVIOUS SECONDS -> kilobytes per second, never negative.
@@ -44,7 +44,7 @@ disk_rate_compute() {
 # disk_format_rate KB_PER_SEC -> human readable rate.
 disk_format_rate() {
   [[ "${1}" =~ ^[0-9]+$ ]] || { echo "0KB/s"; return 0; }
-  awk -v k="${1}" 'BEGIN {
+  LC_ALL=C awk -v k="${1}" 'BEGIN {
     if (k >= 1024) printf "%.1fMB/s", k / 1024;
     else printf "%dKB/s", k;
   }'

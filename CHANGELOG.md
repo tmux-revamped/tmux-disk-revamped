@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A comma-decimal locale such as pt_BR printed rates as `2,0MB/s`. The
+  formatters now run under the C locale.
 - On macOS every value rendered empty when GNU coreutils came first on PATH,
   because the BSD-only `df -g` reached GNU `df`, which rejects it. The macOS
   readers now call `/bin/df`.
