@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The options-mode background process reads every option it needs in one tmux
+  call per tick, sends its cache writes and published values in a second, and
+  keeps its functions out of the environment of the commands it runs. The all-
+  disks listing refreshes every `@disk_revamped_detail_interval` seconds, 60
+  by default, and options mode ticks every `@disk_revamped_interval` seconds,
+  30 by default.
+
 ### Fixed
 
 - A comma-decimal locale such as pt_BR printed rates as `2,0MB/s`. The
@@ -19,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `@disk_revamped_render 'options'` replaces the `#()` calls with tmux option
   reads, written by one background process per server every
-  `status-interval` seconds. tmux reruns a `#()` call on every redraw, so a
+  `@disk_revamped_interval` seconds, 30 by default. tmux reruns a `#()` call on every redraw, so a
   shared bar ran each one about once a second and painted values one by one.
 - `@disk_revamped_fixed_width 'on'` pads each value to its widest form, and
   `@disk_revamped_<metric>_width` sets one metric's width, so a value changing

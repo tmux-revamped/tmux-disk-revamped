@@ -44,6 +44,10 @@ disk_mount() {
   get_tmux_option "@disk_revamped_mount" "/"
 }
 
+disk_detail_age() {
+  get_tmux_option "@disk_revamped_detail_interval" "60"
+}
+
 disk_refresh() {
   local pct used total avail
   read -r pct used total avail <<< "$(read_disk "$(disk_mount)")"
@@ -51,7 +55,7 @@ disk_refresh() {
   cache_set used "${used}"
   cache_set total "${total}"
   cache_set free "${avail}"
-  cache_set all "$(read_all_disks)"
+  cache_set_if_stale all "$(disk_detail_age)" read_all_disks
   disk_refresh_io
   disk_refresh_fill "${used}" "${avail}"
   disk_refresh_inodes
@@ -244,7 +248,7 @@ disk_publish() {
 _disk_reexec() { exec "${PLUGIN_DIR}/src/disk.sh" daemon; }
 
 disk_daemon() {
-  if ticker_run disk_revamped disk_publish "$$"; then
+  if ticker_run disk_revamped disk_publish "$$" 30; then
     _disk_reexec
   fi
 }
