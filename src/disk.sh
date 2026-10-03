@@ -137,8 +137,6 @@ disk_tick() {
 disk_render_metric() {
   local cmd="${1}"
   case "${cmd}" in
-    start)   ticker_start "${PLUGIN_DIR}/src/disk.sh"; return 0 ;;
-    daemon)  disk_daemon; return 0 ;;
     percentage) disk_render_percentage "$(cache_get percent)" ;;
     icon)       disk_render_icon "$(cache_get percent)" ;;
     fg_color)   disk_render_fg "$(cache_get percent)" ;;
@@ -255,6 +253,8 @@ main() {
   local cmd="${1:-}"
 
   case "${cmd}" in
+    start) ticker_start "${PLUGIN_DIR}/src/disk.sh"; return 0 ;;
+    daemon) disk_daemon; return 0 ;;
     refresh)   disk_refresh; return 0 ;;
     card)      disk_card; return 0 ;;
     eat_view)  disk_eat_view; return 0 ;;

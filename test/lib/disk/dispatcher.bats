@@ -360,3 +360,11 @@ teardown() {
 
   [[ "$(cat "${TEST_TMPDIR}/spawn")" == *"/src/disk.sh" ]]
 }
+
+@test "disk dispatcher - the metric renderer does not start the daemon" {
+  disk_daemon() { echo "daemon" > "${TEST_TMPDIR}/daemon"; }
+
+  disk_render_metric daemon >/dev/null
+
+  [ ! -f "${TEST_TMPDIR}/daemon" ]
+}
