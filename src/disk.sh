@@ -18,6 +18,10 @@ source "${PLUGIN_DIR}/src/lib/tmux/tmux-ops.sh"
 # shellcheck source=/dev/null
 source "${PLUGIN_DIR}/src/lib/utils/cache.sh"
 # shellcheck source=/dev/null
+source "${PLUGIN_DIR}/src/lib/utils/publish.sh"
+# shellcheck source=/dev/null
+source "${PLUGIN_DIR}/src/lib/utils/ticker.sh"
+# shellcheck source=/dev/null
 source "${PLUGIN_DIR}/src/lib/disk/disk.sh"
 # shellcheck source=/dev/null
 source "${PLUGIN_DIR}/src/lib/disk/render.sh"
@@ -133,6 +137,8 @@ disk_tick() {
 disk_render_metric() {
   local cmd="${1}"
   case "${cmd}" in
+    start)   ticker_start "${PLUGIN_DIR}/src/disk.sh"; return 0 ;;
+    daemon)  disk_daemon; return 0 ;;
     percentage) disk_render_percentage "$(cache_get percent)" ;;
     icon)       disk_render_icon "$(cache_get percent)" ;;
     fg_color)   disk_render_fg "$(cache_get percent)" ;;
@@ -192,14 +198,56 @@ disk_label() {
   fi
 }
 
+disk_natural_width() {
+  case "${1}" in
+    percentage) printf '4' ;;
+    read) printf '9' ;;
+    write) printf '9' ;;
+    inodes) printf '4' ;;
+    *) printf '0' ;;
+  esac
+}
+
+disk_padded() {
+  publish_pad "${2}" "$(publish_width disk_revamped "${1}" "$(disk_natural_width "${1}")")"
+}
+
 disk_labelled() {
   local metric="${1}" value="${2}" label
   [[ -n "${value}" ]] || return 0
+  value="$(disk_padded "${metric}" "${value}")"
   label="$(disk_label "${metric}")"
   if [[ -n "${label}" ]]; then
     printf '%s %s\n' "${label}" "${value}"
   else
     printf '%s\n' "${value}"
+  fi
+}
+
+disk_output() {
+  local metric="${1}" out
+  out="$(disk_render_metric "${metric}")"
+  if disk_is_labelled "${metric}"; then
+    disk_labelled "${metric}" "${out}"
+  elif [[ -n "${out}" ]]; then
+    printf '%s\n' "${out}"
+  fi
+}
+
+disk_publish() {
+  local metric
+  disk_refresh
+  for metric in $(get_tmux_option "@disk_revamped_published" ""); do
+    publish_add "@disk_revamped_out_${metric}" "$(disk_output "${metric}")"
+  done
+  publish_commit
+}
+
+_disk_reexec() { exec "${PLUGIN_DIR}/src/disk.sh" daemon; }
+
+disk_daemon() {
+  if ticker_run disk_revamped disk_publish "$$"; then
+    _disk_reexec
   fi
 }
 
@@ -216,14 +264,7 @@ main() {
   esac
 
   disk_tick
-
-  local out
-  out="$(disk_render_metric "${cmd}")"
-  if disk_is_labelled "${cmd}"; then
-    disk_labelled "${cmd}" "${out}"
-  elif [[ -n "${out}" ]]; then
-    printf '%s\n' "${out}"
-  fi
+  disk_output "${cmd}"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

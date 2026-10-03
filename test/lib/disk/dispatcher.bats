@@ -300,3 +300,63 @@ teardown() {
 
   [[ "${output}" == $'\xf3\xb0\x8b\x8a'" 42" ]]
 }
+
+@test "disk dispatcher - fixed width pads a value to its widest form" {
+  set_tmux_option "@disk_revamped_fixed_width" "on"
+
+  run disk_labelled percentage "9%"
+
+  [[ "${output}" == "  9%" ]]
+}
+
+@test "disk dispatcher - natural widths cover the padded metrics" {
+  run bash -c 'source "$1"; for m in percentage read write graph; do printf "%s=%s " "$m" "$(disk_natural_width "$m")"; done' _ "${BATS_TEST_DIRNAME}/../../../src/disk.sh"
+
+  [[ "${output}" == "percentage=4 read=9 write=9 graph=0 " ]]
+}
+
+@test "disk dispatcher - publish writes every published metric in one batch" {
+  export PUBLISH_LOG="${TEST_TMPDIR}/publish.log"
+  _publish_tmux() { [[ "${1}" == "list-clients" ]] && return 0; printf '%s\n' "$@" > "${PUBLISH_LOG}"; }
+  disk_refresh() { return 0; }
+  disk_output() { printf 'v-%s' "${1}"; }
+  set_tmux_option "@disk_revamped_published" "alpha beta"
+
+  disk_publish
+
+  [[ "$(paste -sd'|' "${PUBLISH_LOG}")" == "set-option|-gq|@disk_revamped_out_alpha|v-alpha|;|set-option|-gq|@disk_revamped_out_beta|v-beta" ]]
+}
+
+@test "disk dispatcher - the daemon re-executes after the tick limit" {
+  ticker_run() { return 0; }
+  _disk_reexec() { echo "reexec" > "${TEST_TMPDIR}/reexec"; }
+
+  disk_daemon
+
+  [[ "$(cat "${TEST_TMPDIR}/reexec")" == "reexec" ]]
+}
+
+@test "disk dispatcher - the daemon stops when it loses ownership" {
+  ticker_run() { return 1; }
+  _disk_reexec() { echo "reexec" > "${TEST_TMPDIR}/reexec"; }
+
+  disk_daemon
+
+  [ ! -f "${TEST_TMPDIR}/reexec" ]
+}
+
+@test "disk dispatcher - main daemon runs the ticker" {
+  disk_daemon() { echo "daemon" > "${TEST_TMPDIR}/daemon"; }
+
+  main daemon
+
+  [[ "$(cat "${TEST_TMPDIR}/daemon")" == "daemon" ]]
+}
+
+@test "disk dispatcher - main start spawns the daemon" {
+  _ticker_spawn() { printf '%s' "${1}" > "${TEST_TMPDIR}/spawn"; }
+
+  main start
+
+  [[ "$(cat "${TEST_TMPDIR}/spawn")" == *"/src/disk.sh" ]]
+}
