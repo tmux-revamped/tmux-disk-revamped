@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- In options mode, running the entry point a second time, as two overlapping
+  config reloads do, found no placeholders left in the status line and
+  published nothing, which froze every value. A metric whose option read is
+  already on the status line now counts as used.
 - A comma-decimal locale such as pt_BR printed rates as `2,0MB/s`. The
   formatters now run under the C locale.
 - On macOS every value rendered empty when GNU coreutils came first on PATH,

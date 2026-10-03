@@ -56,3 +56,12 @@ teardown() {
 
   [[ "$(cat "$(_mock_opt_file @disk_revamped_published)")" == "percentage" ]]
 }
+
+@test "entry - a second run keeps metrics already turned into option reads" {
+  tmux set-option -gq "@disk_revamped_render" "options"
+  tmux set-option -gq "status-right" "[#{E:@disk_revamped_out_percentage}]"
+
+  bash "${ENTRY}"
+
+  [[ "$(cat "$(_mock_opt_file @disk_revamped_published)")" == "percentage" ]]
+}
