@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-# disk.sh: disk usage acquisition via df.
-#
-# disk_parse_df is pure. The df calls live behind seams tests can stub. df flags
-# differ by platform, so each platform has its own seam.
 
 [[ -n "${_DISK_REVAMPED_DISK_LOADED:-}" ]] && return 0
 _DISK_REVAMPED_DISK_LOADED=1
@@ -12,9 +7,6 @@ _DISK_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "${_DISK_LIB_DIR}/../utils/platform.sh"
 
-# disk_parse_df TEXT -> "<pct> <used_gb> <total_gb>" from df output.
-# Reads the data line that carries the capacity percentage, so a wrapped header
-# does not matter. Used and total are reduced to plain integers in gigabytes.
 disk_parse_df() {
   local line total used pct avail
   line=$(printf '%s\n' "${1}" | grep -E '[0-9]+%' | head -1)
@@ -36,9 +28,6 @@ disk_whole_devices() {
   done <<< "${1}"
 }
 
-# diskstats_io TEXT DEVICES -> "<read_kb> <write_kb>" cumulative from /proc/diskstats,
-# summed over the device names in DEVICES only. Sectors are 512 bytes, so
-# sectors / 2 is kilobytes.
 diskstats_io() {
   local devices
   devices="$(printf '%s\n' "${2:-}" | tr '\n' ' ')"
@@ -48,7 +37,6 @@ diskstats_io() {
     END { print int(r / 2), int(w / 2) }'
 }
 
-# disk_rate_compute CURRENT PREVIOUS SECONDS -> kilobytes per second, never negative.
 disk_rate_compute() {
   [[ "${1}" =~ ^[0-9]+$ && "${2}" =~ ^[0-9]+$ && "${3}" =~ ^[0-9]+$ ]] || { echo 0; return 0; }
   (( ${3} <= 0 )) && { echo 0; return 0; }
@@ -57,7 +45,6 @@ disk_rate_compute() {
   echo $(( d / ${3} ))
 }
 
-# disk_format_rate KB_PER_SEC -> human readable rate.
 disk_format_rate() {
   [[ "${1}" =~ ^[0-9]+$ ]] || { echo "0KB/s"; return 0; }
   LC_ALL=C awk -v k="${1}" 'BEGIN {
@@ -66,17 +53,14 @@ disk_format_rate() {
   }'
 }
 
-# disks_from_df_macos TEXT -> "<mount> <pct>" per real disk from `df -h`.
 disks_from_df_macos() {
   printf '%s\n' "${1}" | awk 'NR>1 && $1 ~ /^\/dev\// && $9 !~ /^\/Volumes\// { print $9, $5 }'
 }
 
-# disks_from_df_linux TEXT -> "<mount> <pct>" per real disk from `df -h`.
 disks_from_df_linux() {
   printf '%s\n' "${1}" | awk 'NR>1 && $1 ~ /^\/dev\// && $6 !~ /^\/boot/ && $6 !~ /^\/snap/ { print $6, $5 }'
 }
 
-# Host-probe seams.
 _read_df_macos() { /bin/df -g "${1}" 2>/dev/null; }
 _read_df_linux() { df -BG "${1}" 2>/dev/null; }
 _read_diskstats() { cat /proc/diskstats 2>/dev/null; }
@@ -92,7 +76,6 @@ _read_df_h_macos() { /bin/df -h 2>/dev/null; }
 _read_df_kb_macos() { /bin/df -Pk "${1}" 2>/dev/null; }
 _read_df_kb_linux() { df -Pk "${1}" 2>/dev/null; }
 
-# read_all_disks -> "<mount> <pct>" per mounted real disk, one per line.
 read_all_disks() {
   if is_macos; then
     disks_from_df_macos "$(_read_df_h_macos)"
@@ -101,14 +84,12 @@ read_all_disks() {
   fi
 }
 
-# read_disk_io -> "<read_kb> <write_kb>" cumulative, empty off Linux.
 read_disk_io() {
   if is_linux; then
     diskstats_io "$(_read_diskstats)" "$(disk_whole_devices "$(_read_sys_block)")"
   fi
 }
 
-# read_disk MOUNT -> "<pct> <used_gb> <total_gb>", empty on an unknown platform.
 read_disk() {
   local mount="${1:-/}"
   if is_macos; then
@@ -151,9 +132,6 @@ export -f read_disk
 export -f read_disk_io
 export -f read_all_disks
 
-# disk_parse_inodes TEXT -> "<pct>" inode usage from `df -i` output.
-# The inode-use percentage is the last percent column on the data line: on Linux
-# it is IUse%, on macOS it is %iused which follows the capacity percent.
 disk_parse_inodes() {
   local line pct
   line=$(printf '%s\n' "${1}" | grep -E '[0-9]+%' | head -1)
@@ -162,9 +140,6 @@ disk_parse_inodes() {
   echo "${pct:-0}"
 }
 
-# disk_parse_purgeable TEXT -> "<gb>" APFS purgeable space in gigabytes.
-# Reads the "Purgeable Space" line from `diskutil info` output. Values reported
-# in MB are scaled down to whole gigabytes; anything else yields empty.
 disk_parse_purgeable() {
   local line num unit
   line=$(printf '%s\n' "${1}" | grep -iE 'purgeable' | head -1)
@@ -179,12 +154,10 @@ disk_parse_purgeable() {
   esac
 }
 
-# Inode and purgeable host-probe seams.
 _read_df_inodes_macos() { df -i "${1}" 2>/dev/null; }
 _read_df_inodes_linux() { df -i "${1}" 2>/dev/null; }
 _read_diskutil() { diskutil info "${1}" 2>/dev/null; }
 
-# read_inodes MOUNT -> "<pct>" inode usage, empty on an unknown platform.
 read_inodes() {
   local mount="${1:-/}"
   if is_macos; then
@@ -196,7 +169,6 @@ read_inodes() {
   fi
 }
 
-# read_purgeable MOUNT -> "<gb>" APFS purgeable space, empty off macOS.
 read_purgeable() {
   local mount="${1:-/}"
   if is_macos; then

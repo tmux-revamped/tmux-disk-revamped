@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-#
-# doctor.sh: a capability report explaining what this host can and cannot show.
 
 [[ -n "${_DISK_REVAMPED_DOCTOR_LOADED:-}" ]] && return 0
 _DISK_REVAMPED_DOCTOR_LOADED=1
@@ -13,7 +11,6 @@ source "${_DISK_DOCTOR_DIR}/../utils/has-command.sh"
 # shellcheck source=/dev/null
 source "${_DISK_DOCTOR_DIR}/../tmux/tmux-ops.sh"
 
-# _doctor_tool NAME -> "  NAME: found" or "  NAME: not found".
 _doctor_tool() {
   if has_command "${1}"; then
     printf '  %s: found\n' "${1}"
@@ -22,7 +19,6 @@ _doctor_tool() {
   fi
 }
 
-# disk_doctor -> a human readable report of detected sources and gaps.
 disk_doctor() {
   printf 'tmux-disk-revamped doctor\n'
   printf 'platform: %s\n' "$(platform_os)"

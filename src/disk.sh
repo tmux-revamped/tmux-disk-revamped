@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-#
-# disk.sh: command dispatcher for tmux-disk-revamped.
-#
-# Usage: disk.sh percentage | icon | fg_color | bg_color | used | total | refresh
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -80,8 +76,6 @@ disk_refresh() {
   disk_notify_check "${pct}" "$(disk_high_thresh)"
 }
 
-# disk_refresh_io -> compute read and write rates from the cumulative counters,
-# keeping the previous counters in tmux options so no temp file is needed.
 disk_refresh_io() {
   local io rd wr now prev_rd prev_wr prev_ts dt
   io="$(read_disk_io)"
@@ -105,8 +99,6 @@ disk_high_thresh() {
   get_tmux_option "@disk_revamped_high_thresh" "90"
 }
 
-# disk_refresh_fill -> compute the fill rate and time-until-full from the change
-# in used space, read in kilobytes, keeping the previous reading in tmux options.
 disk_refresh_fill() {
   local used avail now prev_used prev_ts dt rate
   read -r _ used _ avail <<< "$(read_disk_kb "$(disk_mount)")"
@@ -126,17 +118,14 @@ disk_refresh_fill() {
   cache_set fill_ts "${now}"
 }
 
-# disk_refresh_inodes -> cache the inode usage percentage for the mount.
 disk_refresh_inodes() {
   cache_set inodes "$(read_inodes "$(disk_mount)")"
 }
 
-# disk_refresh_purgeable -> cache APFS purgeable space, empty off macOS.
 disk_refresh_purgeable() {
   cache_set purgeable "$(read_purgeable "$(disk_mount)")"
 }
 
-# disk_refresh_mounts -> cache "<mount> <pct>%" for every pinned mount.
 disk_refresh_mounts() {
   local list m pct out=""
   list=$(get_tmux_option "@disk_revamped_mounts" "")

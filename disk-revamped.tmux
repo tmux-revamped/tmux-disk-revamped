@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-#
-# disk-revamped.tmux: TPM entry point.
-#
-# Replaces the #{disk_*} placeholders in status-left and status-right with calls
-# to the dispatcher, which reads cached values and never blocks the render.
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DISK_CMD="${PLUGIN_DIR}/src/disk.sh"
@@ -109,8 +104,6 @@ if [[ "${render_mode}" == "options" ]]; then
   "${DISK_CMD}" start 2>/dev/null || true
 fi
 
-# Popup key bindings. display-popup needs tmux 3.2 or newer. The detail popup
-# is bound by default; the what-is-eating-space popup only when its key is set.
 bind_popup() {
   local key="${1}"
   local cmd="${2}"

@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-#
-# render.sh: map cached disk values to icons, colors, and formatted text.
 
 [[ -n "${_DISK_REVAMPED_RENDER_LOADED:-}" ]] && return 0
 _DISK_REVAMPED_RENDER_LOADED=1
@@ -87,7 +85,6 @@ export -f disk_render_bg
 export -f disk_render_size
 export -f disk_render_all
 
-# disk_render_inodes PCT -> "<pct>%" inode usage, empty on cold start.
 disk_render_inodes() {
   [[ -z "${1}" ]] && { echo ""; return 0; }
   local fmt
