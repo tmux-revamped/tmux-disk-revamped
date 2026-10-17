@@ -62,6 +62,7 @@ Press `prefix + I` to install.
 |--------|---------|---------|
 | `@disk_revamped_mount` | `/` | the mount point to report; on macOS the sealed system volume `/` reports only its own small share, so set `/System/Volumes/Data` to see the space your files use |
 | `@disk_revamped_interval` | `30` | seconds a reading stays fresh |
+| `@disk_revamped_detail_interval` | `60` | seconds the all-disks listing behind `#{disk_all}` and the detail popup stays fresh |
 | `@disk_revamped_percentage_format` | `%s%%` | format for the value |
 | `@disk_revamped_size_format` | `%sG` | format for used and total sizes |
 | `@disk_revamped_medium_thresh` | `70` | usage percent for the medium tier |
@@ -76,6 +77,8 @@ Press `prefix + I` to install.
 | `@disk_revamped_popup_key` | empty | key bound to the detail popup |
 | `@disk_revamped_eat_key` | empty | key bound to the what-is-eating-space popup |
 | `@disk_revamped_eat_path` | the mount | directory the space scan starts from |
+| `@disk_revamped_eat_count` | `10` | how many of the largest entries the space scan lists |
+| `@disk_revamped_eat_interval` | `60` | seconds a space scan result stays fresh before opening the popup scans again |
 | `@disk_revamped_enable_logging` | `0` | set to `1` to log under `~/.tmux/disk-revamped-logs` |
 
 ## Labels
