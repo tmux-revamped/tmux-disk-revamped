@@ -404,3 +404,37 @@ teardown() {
 
   [[ "$(cache_get all)" == "fresh" ]]
 }
+
+@test "disk dispatcher - a refresh skips the probes no published metric uses" {
+  # Arrange
+  local probes="${TEST_TMPDIR}/probes"
+  set_tmux_option "@disk_revamped_published" "percentage used"
+  read_inodes() { printf 'inodes\n' >>"${probes}"; }
+  read_purgeable() { printf 'purgeable\n' >>"${probes}"; }
+  read_disk_kb() { printf 'fill\n' >>"${probes}"; }
+  set_tmux_option "@disk_revamped_mounts" "/home"
+  read_disk() { [[ "${1}" == "/home" ]] && printf 'mounts\n' >>"${probes}"; echo "55 100 466 366"; }
+
+  # Act
+  disk_refresh
+
+  # Assert
+  [ ! -e "${probes}" ]
+}
+
+@test "disk dispatcher - a refresh runs each probe a published metric uses" {
+  # Arrange
+  local probes="${TEST_TMPDIR}/probes"
+  set_tmux_option "@disk_revamped_published" "inodes purgeable full_eta mounts"
+  read_inodes() { printf 'inodes\n' >>"${probes}"; }
+  read_purgeable() { printf 'purgeable\n' >>"${probes}"; }
+  read_disk_kb() { printf 'fill\n' >>"${probes}"; }
+  set_tmux_option "@disk_revamped_mounts" "/home"
+  read_disk() { [[ "${1}" == "/home" ]] && printf 'mounts\n' >>"${probes}"; echo "55 100 466 366"; }
+
+  # Act
+  disk_refresh
+
+  # Assert
+  [[ "$(sort "${probes}" | paste -sd' ' -)" == "fill inodes mounts purgeable" ]]
+}

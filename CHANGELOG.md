@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Every refresh ran `df -i`, `diskutil info`, a kilobyte `df` and one `df` per
+  pinned mount even when the status line showed none of the inode, purgeable,
+  fill or mounts values. Each of those probes now runs only when a metric that
+  needs it is on the status line.
 - The fill rate compared used space in whole gigabytes across one tick, so a
   disk either showed nothing or jumped to about `+120G/h` the moment the
   rounded figure moved by one. Used and available space for the fill rate and

@@ -48,8 +48,18 @@ disk_detail_age() {
   get_tmux_option "@disk_revamped_detail_interval" "60"
 }
 
+disk_metric_used() {
+  local published=" ${1} " metric
+  shift
+  [[ -z "${published// /}" ]] && return 0
+  for metric in "$@"; do
+    [[ "${published}" == *" ${metric} "* ]] && return 0
+  done
+  return 1
+}
+
 disk_refresh() {
-  local pct used total avail
+  local pct used total avail published
   read -r pct used total avail <<< "$(read_disk "$(disk_mount)")"
   cache_set percent "${pct}"
   cache_set used "${used}"
@@ -57,10 +67,11 @@ disk_refresh() {
   cache_set free "${avail}"
   cache_set_if_stale all "$(disk_detail_age)" read_all_disks
   disk_refresh_io
-  disk_refresh_fill
-  disk_refresh_inodes
-  disk_refresh_mounts
-  disk_refresh_purgeable
+  published="$(get_tmux_option "@disk_revamped_published" "")"
+  if disk_metric_used "${published}" fill_rate full_eta; then disk_refresh_fill; fi
+  if disk_metric_used "${published}" inodes; then disk_refresh_inodes; fi
+  if disk_metric_used "${published}" mounts; then disk_refresh_mounts; fi
+  if disk_metric_used "${published}" purgeable; then disk_refresh_purgeable; fi
   disk_history_push "${pct}"
   disk_notify_check "${pct}" "$(disk_high_thresh)"
 }
