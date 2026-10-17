@@ -39,6 +39,37 @@ teardown() {
   [[ "${status}" -eq 0 ]]
 }
 
+@test "popup.sh - the space scan stays on one filesystem and includes dot entries" {
+  # Arrange
+  local dir="${TEST_TMPDIR}/scan"
+  mkdir -p "${dir}/visible" "${dir}/.cache"
+  : >"${dir}/.zsh_history"
+  du() { printf '%s\n' "$@"; }
+  sort() { cat; }
+
+  # Act
+  run _run_du "${dir}"
+
+  # Assert
+  [[ "${lines[0]}" == "-xsh" ]] || false
+  [[ "${output}" == *"${dir}/visible"* ]] || false
+  [[ "${output}" == *"${dir}/.cache"* ]] || false
+  [[ "${output}" == *"${dir}/.zsh_history"* ]]
+}
+
+@test "popup.sh - the space scan of an empty directory prints nothing" {
+  # Arrange
+  local dir="${TEST_TMPDIR}/empty"
+  mkdir -p "${dir}"
+  du() { printf 'ran\n'; }
+
+  # Act
+  run _run_du "${dir}"
+
+  # Assert
+  [[ -z "${output}" ]]
+}
+
 @test "popup.sh - disk_eat_path defaults to the mount" {
   [[ "$(disk_eat_path)" == "/" ]]
   set_tmux_option "@disk_revamped_mount" "/home"

@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The what-is-eating-space scan descended into other filesystems mounted below
+  the scan path and ignored dot entries, so a network mount could stall it and
+  `~/.cache` never showed. It now stays on one filesystem and includes dot
+  entries.
 - Every refresh ran `df -i`, `diskutil info`, a kilobyte `df` and one `df` per
   pinned mount even when the status line showed none of the inode, purgeable,
   fill or mounts values. Each of those probes now runs only when a metric that

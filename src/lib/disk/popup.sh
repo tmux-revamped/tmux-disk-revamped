@@ -26,9 +26,14 @@ _tmux() { tmux "$@"; }
 # _run_du PATH -> the largest immediate children of PATH, biggest first. The seam
 # that owns the heavy filesystem scan, mocked in tests.
 _run_du() {
-  local path="${1}" n
+  local path="${1}" n f
+  local -a entries=()
   n=$(get_tmux_option "@disk_revamped_eat_count" "10")
-  du -sh "${path}"/* 2>/dev/null | sort -rh 2>/dev/null | head -n "${n}"
+  for f in "${path}"/* "${path}"/.[!.]* "${path}"/..?*; do
+    [[ -e "${f}" || -L "${f}" ]] && entries+=("${f}")
+  done
+  ((${#entries[@]} > 0)) || return 0
+  du -xsh "${entries[@]}" 2>/dev/null | sort -rh 2>/dev/null | head -n "${n}"
 }
 
 # disk_eat_path -> the directory the space scan starts from.
