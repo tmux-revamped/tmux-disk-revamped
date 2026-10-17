@@ -13,6 +13,12 @@ DISK_SELF="${DISK_SELF:-disk.sh}"
 
 _tmux() { tmux "$@"; }
 
+_disk_popup_cmd() {
+  local cmd hash="#"
+  cmd="$(printf '%q %s; read -r _' "${DISK_SELF}" "${1}")"
+  printf '%s' "${cmd//"${hash}"/${hash}${hash}}"
+}
+
 _run_du() {
   local path="${1}" n f
   local -a entries=()
@@ -47,7 +53,7 @@ disk_eat_view() {
 
 disk_show_eat() {
   cache_refresh_if_stale eat "$(get_tmux_option "@disk_revamped_eat_interval" "60")" disk_eat_refresh
-  _tmux display-popup -E "${DISK_SELF} eat_view; read -r _"
+  _tmux display-popup -E "$(_disk_popup_cmd eat_view)"
 }
 
 disk_card() {
@@ -64,10 +70,11 @@ disk_card() {
 }
 
 disk_show_popup() {
-  _tmux display-popup -E "${DISK_SELF} card; read -r _"
+  _tmux display-popup -E "$(_disk_popup_cmd card)"
 }
 
 export -f _tmux
+export -f _disk_popup_cmd
 export -f _run_du
 export -f disk_eat_path
 export -f disk_eat_refresh

@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   metric and the binding. Placeholders are spliced by prefix and suffix instead
   of a pattern substitution, which treats a backslash differently in bash 3.2
   and bash 5.
+- The usage card and space-scan popups quote the plugin path, so they open when
+  the plugin is installed under a directory whose name contains a space or a
+  single quote.
 
 ## [2.0.0] - 2026-10-17
 

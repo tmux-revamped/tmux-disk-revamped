@@ -145,3 +145,30 @@ teardown() {
   grep -q "display-popup" "${marker}"
   grep -q "card" "${marker}"
 }
+
+@test "popup.sh - disk_show_eat quotes a plugin path with a space and a quote" {
+  # Arrange
+  _run_du() { echo "5G /x"; }
+  DISK_SELF="/p a/it's/disk.sh"
+  local marker="${TEST_TMPDIR}/popup"
+  _tmux() { printf '%s' "${3}" > "${marker}"; }
+
+  # Act
+  disk_show_eat
+
+  # Assert
+  [[ "$(cat "${marker}")" == "/p\\ a/it\\'s/disk.sh eat_view; read -r _" ]]
+}
+
+@test "popup.sh - disk_show_popup quotes a plugin path with a space and a quote" {
+  # Arrange
+  DISK_SELF="/p a/it's/disk.sh"
+  local marker="${TEST_TMPDIR}/popup"
+  _tmux() { printf '%s' "${3}" > "${marker}"; }
+
+  # Act
+  disk_show_popup
+
+  # Assert
+  [[ "$(cat "${marker}")" == "/p\\ a/it\\'s/disk.sh card; read -r _" ]]
+}
