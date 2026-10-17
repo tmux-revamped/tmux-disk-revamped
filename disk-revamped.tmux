@@ -99,16 +99,18 @@ if [[ "${render_mode}" == "options" ]]; then
   "${DISK_CMD}" start 2>/dev/null || true
 fi
 
-# Optional popup key bindings. display-popup needs tmux 3.2 or newer. A binding
-# is created only when the user sets the corresponding key option.
+# Popup key bindings. display-popup needs tmux 3.2 or newer. The detail popup
+# is bound by default; the what-is-eating-space popup only when its key is set.
 bind_popup() {
   local key="${1}"
   local cmd="${2}"
   [[ -n "${key}" ]] || return 0
+  [[ "${key}" == "off" ]] && return 0
   tmux bind-key "${key}" run-shell "${DISK_CMD} ${cmd}"
 }
 
 popup_key=$(tmux show-option -gqv "@disk_revamped_popup_key")
+[[ -z "${popup_key}" ]] && popup_key="M-d"
 eat_key=$(tmux show-option -gqv "@disk_revamped_eat_key")
 
 bind_popup "${popup_key}" "popup"

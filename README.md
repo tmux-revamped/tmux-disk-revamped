@@ -4,7 +4,7 @@
 
 **Disk usage for your tmux status bar, without ever blocking the status render.**
 
-[![Tests](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](CHANGELOG.md)
+[![Tests](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
 
 </div>
 
@@ -76,7 +76,7 @@ Press `prefix + I` to install.
 | `@disk_revamped_inodes_format` | `i%s%%` | format for `#{disk_inodes}` |
 | `@disk_revamped_history_length` | `20` | readings kept for `#{disk_graph}` |
 | `@disk_revamped_notify` | `0` | set to `1` to send a full-disk desktop notification |
-| `@disk_revamped_popup_key` | empty | key bound to the detail popup |
+| `@disk_revamped_popup_key` | `M-d` | key bound to the detail popup; set `off` to bind nothing |
 | `@disk_revamped_eat_key` | empty | key bound to the what-is-eating-space popup |
 | `@disk_revamped_eat_path` | the mount | directory the space scan starts from |
 | `@disk_revamped_eat_count` | `10` | how many of the largest entries the space scan lists |
@@ -177,10 +177,10 @@ set -g @disk_revamped_high_fg_color '#[fg=#dc322f]'
 
 ## Popups, notifications, and doctor
 
-Bind a key to the detail popup or the what-is-eating-space popup. Both need tmux
-3.2 or newer for `display-popup`, and a binding is created only when you set the
-key. The space scan runs `du` in a detached worker and caches the result, so the
-popup opens instantly and never blocks tmux.
+The detail popup opens on `prefix + M-d`. The what-is-eating-space popup is
+opt-in and bound only when you set its key. Both need tmux 3.2 or newer for
+`display-popup`. The space scan runs `du` in a detached worker and caches the
+result, so the popup opens instantly and never blocks tmux.
 
 ```tmux
 set -g @disk_revamped_popup_key 'D'

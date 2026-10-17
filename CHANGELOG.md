@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-17
+
 ### Changed
 
+- **Breaking:** the detail popup is now bound to `prefix + M-d` by default, the
+  key the family allocation gives this plugin, where it used to stay unbound
+  until `@disk_revamped_popup_key` was set. Set the option to `off` to keep it
+  unbound. The what-is-eating-space popup stays opt-in behind
+  `@disk_revamped_eat_key`.
 - The options-mode background process reads every option it needs in one tmux
   call per tick, sends its cache writes and published values in a second, and
   keeps its functions out of the environment of the commands it runs. The all-

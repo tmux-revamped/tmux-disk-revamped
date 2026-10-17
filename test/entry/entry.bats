@@ -65,3 +65,63 @@ teardown() {
 
   [[ "$(cat "$(_mock_opt_file @disk_revamped_published)")" == "percentage" ]]
 }
+
+record_bind_keys() {
+  export BIND_LOG="${TEST_TMPDIR}/bind.log"
+  eval "_base_tmux() $(declare -f tmux | tail -n +2)"
+  tmux() {
+    if [[ "${1}" == "bind-key" ]]; then
+      printf '%s\n' "$*" >> "${BIND_LOG}"
+      return 0
+    fi
+    _base_tmux "$@"
+  }
+  export -f _base_tmux tmux
+}
+
+@test "entry - the popup key defaults to M-d" {
+  # Arrange
+  record_bind_keys
+
+  # Act
+  bash "${ENTRY}"
+
+  # Assert
+  [[ "$(cat "${BIND_LOG}")" == "bind-key M-d run-shell "*"/src/disk.sh popup" ]]
+}
+
+@test "entry - a popup key of off binds nothing" {
+  # Arrange
+  record_bind_keys
+  tmux set-option -gq "@disk_revamped_popup_key" "off"
+
+  # Act
+  bash "${ENTRY}"
+
+  # Assert
+  [ ! -e "${BIND_LOG}" ]
+}
+
+@test "entry - the space popup stays unbound by default" {
+  # Arrange
+  record_bind_keys
+
+  # Act
+  bash "${ENTRY}"
+
+  # Assert
+  [[ "$(cat "${BIND_LOG}")" != *" eat"* ]]
+}
+
+@test "entry - the space popup binds the key it is given" {
+  # Arrange
+  record_bind_keys
+  tmux set-option -gq "@disk_revamped_popup_key" "off"
+  tmux set-option -gq "@disk_revamped_eat_key" "M-E"
+
+  # Act
+  bash "${ENTRY}"
+
+  # Assert
+  [[ "$(cat "${BIND_LOG}")" == "bind-key M-E run-shell "*"/src/disk.sh eat" ]]
+}
