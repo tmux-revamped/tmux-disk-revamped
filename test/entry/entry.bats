@@ -125,3 +125,31 @@ record_bind_keys() {
   # Assert
   [[ "$(cat "${BIND_LOG}")" == "bind-key M-E run-shell "*"/src/disk.sh eat" ]]
 }
+
+@test "entry - jobs mode quotes a plugin path with a space, a quote and a hash" {
+  # Arrange
+  local dir="${TEST_TMPDIR}/it's #x dir"
+  mkdir -p "${dir}"
+  cp -f "${ENTRY}" "${dir}/disk-revamped.tmux"
+  tmux set-option -gq "status-right" "[#{disk_percentage}]"
+
+  # Act
+  bash "${dir}/disk-revamped.tmux"
+
+  # Assert
+  [[ "$(cat "$(_mock_opt_file status-right)")" == "[#($(cd "${TEST_TMPDIR}" && pwd)/it\\'s\\ ##x\\ dir/src/disk.sh percentage)]" ]]
+}
+
+@test "entry - the popup key quotes a plugin path with a space, a quote and a hash" {
+  # Arrange
+  record_bind_keys
+  local dir="${TEST_TMPDIR}/it's #x dir"
+  mkdir -p "${dir}"
+  cp -f "${ENTRY}" "${dir}/disk-revamped.tmux"
+
+  # Act
+  bash "${dir}/disk-revamped.tmux"
+
+  # Assert
+  [[ "$(cat "${BIND_LOG}")" == "bind-key M-d run-shell $(cd "${TEST_TMPDIR}" && pwd)/it\\'s\\ ##x\\ dir/src/disk.sh popup" ]]
+}

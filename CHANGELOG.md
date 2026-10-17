@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The plugin path is quoted with `printf %q`, with every `#` doubled, in each
+  `#()` status call and in the key binding's `run-shell` command, so a plugin
+  directory whose path holds a space, a quote or a `#` no longer breaks every
+  metric and the binding. Placeholders are spliced by prefix and suffix instead
+  of a pattern substitution, which treats a backslash differently in bash 3.2
+  and bash 5.
+
 ## [2.0.0] - 2026-10-17
 
 ### Changed

@@ -7,6 +7,9 @@
 
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DISK_CMD="${PLUGIN_DIR}/src/disk.sh"
+HASH="#"
+DISK_CMD_QUOTED="$(printf '%q' "${DISK_CMD}")"
+DISK_CMD_QUOTED="${DISK_CMD_QUOTED//"${HASH}"/${HASH}${HASH}}"
 
 placeholders=(
   "\#{disk_percentage}"
@@ -28,22 +31,22 @@ placeholders=(
 )
 
 commands=(
-  "#(${DISK_CMD} percentage)"
-  "#(${DISK_CMD} icon)"
-  "#(${DISK_CMD} fg_color)"
-  "#(${DISK_CMD} bg_color)"
-  "#(${DISK_CMD} used)"
-  "#(${DISK_CMD} total)"
-  "#(${DISK_CMD} read)"
-  "#(${DISK_CMD} write)"
-  "#(${DISK_CMD} all)"
-  "#(${DISK_CMD} free)"
-  "#(${DISK_CMD} inodes)"
-  "#(${DISK_CMD} purgeable)"
-  "#(${DISK_CMD} graph)"
-  "#(${DISK_CMD} fill_rate)"
-  "#(${DISK_CMD} full_eta)"
-  "#(${DISK_CMD} mounts)"
+  "#(${DISK_CMD_QUOTED} percentage)"
+  "#(${DISK_CMD_QUOTED} icon)"
+  "#(${DISK_CMD_QUOTED} fg_color)"
+  "#(${DISK_CMD_QUOTED} bg_color)"
+  "#(${DISK_CMD_QUOTED} used)"
+  "#(${DISK_CMD_QUOTED} total)"
+  "#(${DISK_CMD_QUOTED} read)"
+  "#(${DISK_CMD_QUOTED} write)"
+  "#(${DISK_CMD_QUOTED} all)"
+  "#(${DISK_CMD_QUOTED} free)"
+  "#(${DISK_CMD_QUOTED} inodes)"
+  "#(${DISK_CMD_QUOTED} purgeable)"
+  "#(${DISK_CMD_QUOTED} graph)"
+  "#(${DISK_CMD_QUOTED} fill_rate)"
+  "#(${DISK_CMD_QUOTED} full_eta)"
+  "#(${DISK_CMD_QUOTED} mounts)"
 )
 
 render_mode="$(tmux show-option -gqv "@disk_revamped_render")"
@@ -60,10 +63,17 @@ target_for() {
 }
 
 interpolate() {
-  local value="${1}"
-  local i
+  local value="${1}" i placeholder replacement out rest
   for (( i = 0; i < ${#placeholders[@]}; i++ )); do
-    value="${value//${placeholders[i]}/$(target_for "${commands[i]}")}"
+    placeholder="${placeholders[i]#\\}"
+    replacement="$(target_for "${commands[i]}")"
+    out=""
+    rest="${value}"
+    while [[ "${rest}" == *"${placeholder}"* ]]; do
+      out="${out}${rest%%"${placeholder}"*}${replacement}"
+      rest="${rest#*"${placeholder}"}"
+    done
+    value="${out}${rest}"
   done
   echo "${value}"
 }
@@ -106,7 +116,7 @@ bind_popup() {
   local cmd="${2}"
   [[ -n "${key}" ]] || return 0
   [[ "${key}" == "off" ]] && return 0
-  tmux bind-key "${key}" run-shell "${DISK_CMD} ${cmd}"
+  tmux bind-key "${key}" run-shell "${DISK_CMD_QUOTED} ${cmd}"
 }
 
 popup_key=$(tmux show-option -gqv "@disk_revamped_popup_key")
