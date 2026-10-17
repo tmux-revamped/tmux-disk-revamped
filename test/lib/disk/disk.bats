@@ -46,7 +46,40 @@ teardown() {
 
 @test "disk.sh - diskstats_io sums sectors into kilobytes" {
   local txt=$'8 0 sda 100 5 2000 50 200 10 4000 80 0 0 0\n8 16 sdb 1 0 0 0 1 0 0 0 0 0 0'
-  [[ "$(diskstats_io "${txt}")" == "1000 2000" ]]
+  [[ "$(diskstats_io "${txt}" $'sda\nsdb')" == "1000 2000" ]]
+}
+
+@test "disk.sh - read_disk_io counts whole disks only, never partitions or virtual devices" {
+  # Arrange
+  _PLATFORM_OS_CACHE="Linux"
+  _read_diskstats() {
+    printf '%s\n' \
+      '8 0 sda 1 0 2000 0 1 0 4000 0 0 0 0' \
+      '8 1 sda1 1 0 2000 0 1 0 4000 0 0 0 0' \
+      '253 0 dm-0 1 0 2000 0 1 0 4000 0 0 0 0' \
+      '7 0 loop0 1 0 2000 0 1 0 4000 0 0 0 0' \
+      '252 0 zram0 1 0 2000 0 1 0 4000 0 0 0 0' \
+      '1 0 ram0 1 0 2000 0 1 0 4000 0 0 0 0'
+  }
+  _read_sys_block() { printf '%s\n' dm-0 loop0 ram0 sda zram0; }
+
+  # Act
+  run read_disk_io
+
+  # Assert
+  [[ "${output}" == "1000 2000" ]]
+}
+
+@test "disk.sh - the block device seam lists /sys/block entries by name" {
+  # Arrange
+  local expected=""
+  [[ -d /sys/block ]] && expected="$(ls /sys/block)"
+
+  # Act
+  run _read_sys_block
+
+  # Assert
+  [[ "${output}" == "${expected}" ]]
 }
 
 @test "disk.sh - disk_rate_compute divides the delta by seconds" {
@@ -65,6 +98,7 @@ teardown() {
 @test "disk.sh - read_disk_io reads diskstats on Linux" {
   _PLATFORM_OS_CACHE="Linux"
   _read_diskstats() { printf '8 0 sda 1 0 2000 0 1 0 4000 0 0 0 0\n'; }
+  _read_sys_block() { printf 'sda\n'; }
   [[ "$(read_disk_io)" == "1000 2000" ]]
 }
 

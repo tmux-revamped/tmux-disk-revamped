@@ -26,10 +26,26 @@ disk_parse_df() {
   echo "${pct:-0} ${used:-0} ${total:-0} ${avail:-0}"
 }
 
-# diskstats_io TEXT -> "<read_kb> <write_kb>" cumulative from /proc/diskstats.
-# Sectors are 512 bytes, so sectors / 2 is kilobytes.
+disk_whole_devices() {
+  local name
+  while IFS= read -r name; do
+    case "${name}" in
+      "" | loop* | ram* | dm-* | zram*) continue ;;
+    esac
+    printf '%s\n' "${name}"
+  done <<< "${1}"
+}
+
+# diskstats_io TEXT DEVICES -> "<read_kb> <write_kb>" cumulative from /proc/diskstats,
+# summed over the device names in DEVICES only. Sectors are 512 bytes, so
+# sectors / 2 is kilobytes.
 diskstats_io() {
-  printf '%s\n' "${1}" | LC_ALL=C awk '{ r += $6; w += $10 } END { print int(r / 2), int(w / 2) }'
+  local devices
+  devices="$(printf '%s\n' "${2:-}" | tr '\n' ' ')"
+  printf '%s\n' "${1}" | LC_ALL=C awk -v devs="${devices}" '
+    BEGIN { n = split(devs, d, " "); for (i = 1; i <= n; i++) keep[d[i]] = 1 }
+    ($3 in keep) { r += $6; w += $10 }
+    END { print int(r / 2), int(w / 2) }'
 }
 
 # disk_rate_compute CURRENT PREVIOUS SECONDS -> kilobytes per second, never negative.
@@ -64,6 +80,13 @@ disks_from_df_linux() {
 _read_df_macos() { /bin/df -g "${1}" 2>/dev/null; }
 _read_df_linux() { df -BG "${1}" 2>/dev/null; }
 _read_diskstats() { cat /proc/diskstats 2>/dev/null; }
+_read_sys_block() {
+  local f
+  for f in /sys/block/*; do
+    [[ -e "${f}" ]] && printf '%s\n' "${f##*/}"
+  done
+  return 0
+}
 _read_df_h() { df -h 2>/dev/null; }
 _read_df_h_macos() { /bin/df -h 2>/dev/null; }
 
@@ -79,7 +102,7 @@ read_all_disks() {
 # read_disk_io -> "<read_kb> <write_kb>" cumulative, empty off Linux.
 read_disk_io() {
   if is_linux; then
-    diskstats_io "$(_read_diskstats)"
+    diskstats_io "$(_read_diskstats)" "$(disk_whole_devices "$(_read_sys_block)")"
   fi
 }
 
@@ -96,6 +119,7 @@ read_disk() {
 }
 
 export -f disk_parse_df
+export -f disk_whole_devices
 export -f diskstats_io
 export -f disk_rate_compute
 export -f disk_format_rate
@@ -104,6 +128,7 @@ export -f disks_from_df_linux
 export -f _read_df_macos
 export -f _read_df_linux
 export -f _read_diskstats
+export -f _read_sys_block
 export -f _read_df_h
 export -f _read_df_h_macos
 export -f read_disk

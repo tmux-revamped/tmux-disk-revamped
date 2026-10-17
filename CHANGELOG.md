@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- On Linux the read and write rates summed every line of `/proc/diskstats`, so
+  a write was counted once for the disk, again for its partition, and again
+  for any device-mapper, loop or zram device above it. Only whole block
+  devices listed in `/sys/block`, other than loop, ram, dm and zram devices,
+  are counted now.
 - In options mode, running the entry point a second time, as two overlapping
   config reloads do, found no placeholders left in the status line and
   published nothing, which froze every value. A metric whose option read is
