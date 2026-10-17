@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The fill rate compared used space in whole gigabytes across one tick, so a
+  disk either showed nothing or jumped to about `+120G/h` the moment the
+  rounded figure moved by one. Used and available space for the fill rate and
+  time-until-full are now read in kilobytes.
 - On Linux the read and write rates summed every line of `/proc/diskstats`, so
   a write was counted once for the disk, again for its partition, and again
   for any device-mapper, loop or zram device above it. Only whole block

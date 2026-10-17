@@ -57,7 +57,7 @@ disk_refresh() {
   cache_set free "${avail}"
   cache_set_if_stale all "$(disk_detail_age)" read_all_disks
   disk_refresh_io
-  disk_refresh_fill "${used}" "${avail}"
+  disk_refresh_fill
   disk_refresh_inodes
   disk_refresh_mounts
   disk_refresh_purgeable
@@ -90,10 +90,11 @@ disk_high_thresh() {
   get_tmux_option "@disk_revamped_high_thresh" "90"
 }
 
-# disk_refresh_fill USED AVAIL -> compute the fill rate and time-until-full from
-# the change in used space, keeping the previous reading in tmux options.
+# disk_refresh_fill -> compute the fill rate and time-until-full from the change
+# in used space, read in kilobytes, keeping the previous reading in tmux options.
 disk_refresh_fill() {
-  local used="${1}" avail="${2}" now prev_used prev_ts dt rate
+  local used avail now prev_used prev_ts dt rate
+  read -r _ used _ avail <<< "$(read_disk_kb "$(disk_mount)")"
   [[ "${used}" =~ ^[0-9]+$ ]] || return 0
   now=$(date +%s)
   prev_used=$(cache_get used_raw)

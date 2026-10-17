@@ -8,6 +8,7 @@ setup() {
   export CACHE_SYNC=1
   source "${BATS_TEST_DIRNAME}/../../../src/disk.sh"
   read_disk() { echo "55 100 466 366"; }
+  read_disk_kb() { echo "55 104857600 488636416 383778816"; }
   read_disk_io() { echo ""; }
   read_all_disks() { printf '/ 55%%\n/home 30%%\n'; }
   read_inodes() { echo "12"; }
@@ -159,10 +160,11 @@ teardown() {
 
 @test "disk.sh dispatcher - disk_refresh_fill computes rate and eta" {
   export MOCK_EPOCH=1000
-  disk_refresh_fill 100 366
-  [[ "$(cache_get used_raw)" == "100" ]]
+  disk_refresh_fill
+  [[ "$(cache_get used_raw)" == "104857600" ]]
   export MOCK_EPOCH=4600
-  disk_refresh_fill 110 356
+  read_disk_kb() { echo "56 115343360 488636416 373293056"; }
+  disk_refresh_fill
   [[ "$(cache_get fill_rate)" == "10.0" ]]
   cache_set percent "55"
   run main fill_rate
@@ -172,8 +174,23 @@ teardown() {
 }
 
 @test "disk.sh dispatcher - disk_refresh_fill ignores non-numeric used" {
-  run disk_refresh_fill abc 100
+  read_disk_kb() { echo "55 abc 488636416 100"; }
+  run disk_refresh_fill
   [[ "${status}" -eq 0 ]]
+}
+
+@test "disk.sh dispatcher - a sub-gigabyte write in one tick gives a sub-gigabyte rate" {
+  # Arrange
+  export MOCK_EPOCH=1000
+  disk_refresh_fill
+  export MOCK_EPOCH=1030
+  read_disk_kb() { echo "55 104867840 488636416 383768576"; }
+
+  # Act
+  disk_refresh_fill
+
+  # Assert
+  [[ "$(cache_get fill_rate)" == "1.2" ]]
 }
 
 @test "disk.sh dispatcher - disk_refresh_mounts lists pinned mounts" {

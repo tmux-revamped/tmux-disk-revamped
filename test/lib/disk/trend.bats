@@ -20,8 +20,8 @@ teardown() {
 }
 
 @test "trend.sh - disk_fill_rate_compute is gigabytes per hour" {
-  [[ "$(disk_fill_rate_compute 110 100 3600)" == "10.0" ]]
-  [[ "$(disk_fill_rate_compute 100 110 3600)" == "-10.0" ]]
+  [[ "$(disk_fill_rate_compute 115343360 104857600 3600)" == "10.0" ]] || false
+  [[ "$(disk_fill_rate_compute 104857600 115343360 3600)" == "-10.0" ]]
 }
 
 @test "trend.sh - disk_fill_rate_compute is empty for bad input" {
@@ -41,7 +41,7 @@ teardown() {
 }
 
 @test "trend.sh - disk_eta_compute divides available by the rate" {
-  [[ "$(disk_eta_compute 100 10)" == "10" ]]
+  [[ "$(disk_eta_compute 104857600 10)" == "10" ]]
 }
 
 @test "trend.sh - disk_eta_compute is empty when not filling" {
@@ -60,4 +60,15 @@ teardown() {
 @test "trend.sh - disk_render_eta is empty for bad input" {
   [[ -z "$(disk_render_eta "")" ]]
   [[ -z "$(disk_render_eta abc)" ]]
+}
+
+@test "trend.sh - a growth under one gigabyte in one tick yields a real rate" {
+  # Arrange
+  local before=104857600 after=$(( 104857600 + 10240 ))
+
+  # Act
+  run disk_fill_rate_compute "${after}" "${before}" 30
+
+  # Assert
+  [[ "${output}" == "1.2" ]]
 }

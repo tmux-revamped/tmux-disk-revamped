@@ -44,6 +44,41 @@ teardown() {
   [[ -z "$(read_disk /)" ]]
 }
 
+@test "disk.sh - read_disk_kb reads the POSIX kilobyte df on Linux" {
+  # Arrange
+  _PLATFORM_OS_CACHE="Linux"
+  _read_df_kb_linux() { printf 'Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/sda1 1000000 400000 600000 40%% /\n'; }
+
+  # Act
+  run read_disk_kb /
+
+  # Assert
+  [[ "${output}" == "40 400000 1000000 600000" ]]
+}
+
+@test "disk.sh - read_disk_kb reads the system df on macOS" {
+  # Arrange
+  _PLATFORM_OS_CACHE="Darwin"
+  _read_df_kb_macos() { printf 'Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/disk3s1 2000000 500000 1500000 25%% /\n'; }
+
+  # Act
+  run read_disk_kb /
+
+  # Assert
+  [[ "${output}" == "25 500000 2000000 1500000" ]]
+}
+
+@test "disk.sh - read_disk_kb is empty on an unknown platform" {
+  # Arrange
+  _PLATFORM_OS_CACHE="Plan9"
+
+  # Act
+  run read_disk_kb /
+
+  # Assert
+  [[ -z "${output}" ]]
+}
+
 @test "disk.sh - diskstats_io sums sectors into kilobytes" {
   local txt=$'8 0 sda 100 5 2000 50 200 10 4000 80 0 0 0\n8 16 sdb 1 0 0 0 1 0 0 0 0 0 0'
   [[ "$(diskstats_io "${txt}" $'sda\nsdb')" == "1000 2000" ]]

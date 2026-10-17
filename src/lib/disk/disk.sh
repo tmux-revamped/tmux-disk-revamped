@@ -89,6 +89,8 @@ _read_sys_block() {
 }
 _read_df_h() { df -h 2>/dev/null; }
 _read_df_h_macos() { /bin/df -h 2>/dev/null; }
+_read_df_kb_macos() { /bin/df -Pk "${1}" 2>/dev/null; }
+_read_df_kb_linux() { df -Pk "${1}" 2>/dev/null; }
 
 # read_all_disks -> "<mount> <pct>" per mounted real disk, one per line.
 read_all_disks() {
@@ -118,6 +120,17 @@ read_disk() {
   fi
 }
 
+read_disk_kb() {
+  local mount="${1:-/}"
+  if is_macos; then
+    disk_parse_df "$(_read_df_kb_macos "${mount}")"
+  elif is_linux; then
+    disk_parse_df "$(_read_df_kb_linux "${mount}")"
+  else
+    echo ""
+  fi
+}
+
 export -f disk_parse_df
 export -f disk_whole_devices
 export -f diskstats_io
@@ -131,6 +144,9 @@ export -f _read_diskstats
 export -f _read_sys_block
 export -f _read_df_h
 export -f _read_df_h_macos
+export -f _read_df_kb_macos
+export -f _read_df_kb_linux
+export -f read_disk_kb
 export -f read_disk
 export -f read_disk_io
 export -f read_all_disks
