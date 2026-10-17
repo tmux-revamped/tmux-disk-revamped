@@ -67,7 +67,9 @@ Press `prefix + I` to install.
 | `@disk_revamped_size_format` | `%sG` | format for used and total sizes |
 | `@disk_revamped_medium_thresh` | `70` | usage percent for the medium tier |
 | `@disk_revamped_high_thresh` | `90` | usage percent for the high tier |
-| `@disk_revamped_{low,medium,high}_icon` | `▰▱▱`, `▰▰▱`, `▰▰▰` | tier icons |
+| `@disk_revamped_low_icon` | `▰▱▱` | icon for the low tier |
+| `@disk_revamped_medium_icon` | `▰▰▱` | icon for the medium tier |
+| `@disk_revamped_high_icon` | `▰▰▰` | icon for the high tier |
 | `@disk_revamped_{low,medium,high}_{fg,bg}_color` | empty | tier colors |
 | `@disk_revamped_separator` | `, ` | separator between disks in `#{disk_all}` |
 | `@disk_revamped_mounts` | empty | space or comma list of mounts for `#{disk_mounts}` |
@@ -80,6 +82,15 @@ Press `prefix + I` to install.
 | `@disk_revamped_eat_count` | `10` | how many of the largest entries the space scan lists |
 | `@disk_revamped_eat_interval` | `60` | seconds a space scan result stays fresh before opening the popup scans again |
 | `@disk_revamped_enable_logging` | `0` | set to `1` to log under `~/.tmux/disk-revamped-logs` |
+
+### Internal state
+
+The plugin manages these options itself. Do not set them.
+
+| Option | Holds |
+|--------|-------|
+| `@disk_revamped_published` | space-separated metrics found in `status-left` and `status-right` at load; the background worker publishes these, and reads the fill rate, inodes, mounts and purgeable space only when one of them is listed |
+| `@disk_revamped_notified` | `1` after a full-disk notification fired, until usage drops below `@disk_revamped_high_thresh` again and it resets to `0`, so each crossing notifies once |
 
 ## Labels
 
