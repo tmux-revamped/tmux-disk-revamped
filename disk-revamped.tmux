@@ -102,6 +102,8 @@ update_option "status-right"
 
 if [[ "${render_mode}" == "options" ]]; then
   "${DISK_CMD}" start 2>/dev/null || true
+else
+  tmux set-option -gqu "@disk_revamped_ticker_pid"
 fi
 
 bind_popup() {
