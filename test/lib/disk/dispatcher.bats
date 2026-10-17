@@ -201,6 +201,28 @@ teardown() {
   [[ "${output}" == "/ 55%, /home 55%" ]]
 }
 
+@test "disk dispatcher - a mount path cannot inject a tmux format into the all-disks value" {
+  # Arrange
+  read_all_disks() { printf '/mnt/#(touch x) 5%%\n/ 55%%\n'; }
+
+  # Act
+  disk_refresh
+
+  # Assert
+  [[ "$(cache_get all)" == $'/mnt/##(touch x) 5%\n/ 55%' ]]
+}
+
+@test "disk dispatcher - a pinned mount path has its hashes doubled" {
+  # Arrange
+  set_tmux_option "@disk_revamped_mounts" "/mnt/a#[fg=red]"
+
+  # Act
+  disk_refresh_mounts
+
+  # Assert
+  [[ "$(cache_get mounts)" == "/mnt/a##[fg=red] 55%" ]]
+}
+
 @test "disk.sh dispatcher - disk_refresh_mounts is empty without configuration" {
   run disk_refresh_mounts
   [[ "${status}" -eq 0 ]]

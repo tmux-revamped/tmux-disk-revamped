@@ -73,8 +73,9 @@ disk_card() {
   printf 'Used  %sG\n' "$(cache_get used)"
   printf 'Free  %sG\n' "$(cache_get free)"
   printf 'Total %sG\n' "$(cache_get total)"
-  local all
+  local all hash="#"
   all="$(cache_get all)"
+  all="${all//"${hash}${hash}"/${hash}}"
   [[ -n "${all}" ]] && printf '\nMounts\n%s\n' "${all}"
   return 0
 }

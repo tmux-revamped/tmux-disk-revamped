@@ -58,6 +58,10 @@ disk_metric_used() {
   return 1
 }
 
+disk_read_all_escaped() {
+  publish_escape "$(read_all_disks)"
+}
+
 disk_refresh() {
   local pct used total avail published
   read -r pct used total avail <<< "$(read_disk "$(disk_mount)")"
@@ -65,7 +69,7 @@ disk_refresh() {
   cache_set used "${used}"
   cache_set total "${total}"
   cache_set free "${avail}"
-  cache_set_if_stale all "$(disk_detail_age)" read_all_disks
+  cache_set_if_stale all "$(disk_detail_age)" disk_read_all_escaped
   disk_refresh_io
   published="$(get_tmux_option "@disk_revamped_published" "")"
   if disk_metric_used "${published}" fill_rate full_eta; then disk_refresh_fill; fi
@@ -141,7 +145,7 @@ disk_refresh_mounts() {
   for m in ${list}; do
     read -r pct _ <<< "$(read_disk "${m}")"
     [[ -n "${pct}" ]] || continue
-    out="${out}${out:+$'\n'}${m} ${pct}%"
+    out="${out}${out:+$'\n'}$(publish_escape "${m}") ${pct}%"
   done
   cache_set mounts "${out}"
 }

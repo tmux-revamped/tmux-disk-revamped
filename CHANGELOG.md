@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A mount path holding `#`, from the all-disks listing or
+  `@disk_revamped_mounts`, reached the status line as a tmux format, so
+  `#(...)` in a path ran a command and `#[...]` restyled the bar. Every `#` in
+  a mount path is now doubled before tmux sees it.
 - The what-is-eating-space scan descended into other filesystems mounted below
   the scan path and ignored dot entries, so a network mount could stall it and
   `~/.cache` never showed. It now stays on one filesystem and includes dot

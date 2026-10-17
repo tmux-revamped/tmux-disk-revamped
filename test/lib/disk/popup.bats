@@ -121,6 +121,17 @@ teardown() {
   [[ "${output}" == *"Mounts"* ]]
 }
 
+@test "popup.sh - disk_card prints a mount path with its literal hash" {
+  # Arrange
+  cache_set all '/mnt/##x 5%'
+
+  # Act
+  run disk_card
+
+  # Assert
+  [[ "${output}" == *$'Mounts\n/mnt/#x 5%'* ]]
+}
+
 @test "popup.sh - disk_card omits the mounts block when empty" {
   cache_set percent 55
   run disk_card

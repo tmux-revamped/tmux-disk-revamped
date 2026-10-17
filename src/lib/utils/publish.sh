@@ -12,6 +12,11 @@ PUBLISH_PENDING=0
 
 _publish_tmux() { tmux "$@"; }
 
+publish_escape() {
+  local hash="#"
+  printf '%s' "${1//"${hash}"/${hash}${hash}}"
+}
+
 publish_chars() {
   printf '%s' "${1}" | LC_ALL=C tr -d '\200-\277' | wc -c | tr -d ' '
 }
