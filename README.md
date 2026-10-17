@@ -1,133 +1,142 @@
 <div align="center">
 
-<h1>tmux-disk-revamped</h1>
+# tmux-disk-revamped
 
-**Disk usage for your tmux status bar, without ever blocking the status render.**
+<strong>Disk usage for your tmux status bar, without ever blocking the status render.</strong>
 
-[![Tests](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
+English &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; [简体中文](README.zh-Hans.md) &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
+
+[![Tests](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml/badge.svg)](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
+
+<p align="center">
+  <a href="#what-it-does">What it does</a> &nbsp;|&nbsp;
+  <a href="#requirements">Requirements</a> &nbsp;|&nbsp;
+  <a href="#installation">Installation</a> &nbsp;|&nbsp;
+  <a href="#usage">Usage</a> &nbsp;|&nbsp;
+  <a href="#configuration">Configuration</a> &nbsp;|&nbsp;
+  <a href="#key-bindings">Key bindings</a> &nbsp;|&nbsp;
+  <a href="#how-it-works">How it works</a>
+</p>
 
 </div>
 
-**16** placeholders · **2** platforms · **186** tests · **95%+** coverage
+**16** placeholders. **2** render modes. **2** popups. CI runs the suite on **10** Linux and macOS toolchain combinations.
 
-Disk usage for your tmux status bar, without ever blocking the status render. The value is read from a tmux server user-option and returns instantly, while a detached worker runs `df` in the background. No temp files are used.
+---
 
-Built from [tmux-plugin-template](https://github.com/tmux-revamped/tmux-plugin-template).
+## What it does
 
-<table>
-<tr>
-<td><strong>Non-blocking</strong><br/>The render reads a cached user-option and returns instantly while a detached worker refreshes in the background.</td>
-<td><strong>No temp files</strong><br/>Cached values and I/O counters live in tmux server options, so nothing touches the filesystem.</td>
-</tr>
-<tr>
-<td><strong>Cross-platform</strong><br/>Works on macOS and Linux with built-in tools, no extra package required.</td>
-<td><strong>Tested</strong><br/>186 tests with 95%+ coverage run on every push.</td>
-</tr>
-</table>
+The plugin replaces `#{disk_*}` placeholders in `status-left` and `status-right` with usage, free space, inode usage, read and write rates, fill rate, time until full and a usage history for one mount, plus a list of every real disk. Every placeholder reads a value cached in a tmux option. `df` runs in the background, so the status line never waits for it. Nothing is written to disk.
 
-## Placeholders
+It also opens a detail popup on `prefix + M-d`, an optional popup that lists the largest items on the disk, and an optional notification when the disk crosses the high threshold.
 
-| Placeholder | Output |
-|-------------|--------|
-| `#{disk_percentage}` | used space, for example `55%` |
-| `#{disk_icon}` | a tier icon for the current usage |
-| `#{disk_fg_color}` / `#{disk_bg_color}` | colors for the current tier |
-| `#{disk_used}` | used space in gigabytes, for example `100G` |
-| `#{disk_total}` | total space in gigabytes, for example `466G` |
-| `#{disk_read}` | disk read rate, Linux only, for example `1.2MB/s` |
-| `#{disk_write}` | disk write rate, Linux only |
-| `#{disk_all}` | every mounted real disk, for example `/ 55%, /home 30%` |
-| `#{disk_free}` | available space, for example `366G`, auto-scales to `T` |
-| `#{disk_inodes}` | inode usage, for example `i12%` |
-| `#{disk_purgeable}` | APFS purgeable space on macOS, empty elsewhere |
-| `#{disk_graph}` | usage sparkline from recent readings |
-| `#{disk_fill_rate}` | fill rate, for example `+2.1G/h`, empty when steady |
-| `#{disk_full_eta}` | time until full, for example `3d`, empty when not filling |
-| `#{disk_mounts}` | usage for the mounts pinned in `@disk_revamped_mounts` |
+## Requirements
 
-## Install
+| Tool | Version | Needed for |
+|:-----|:--------|:-----------|
+| tmux | 3.2 or later | `display-popup` for both popups |
+| bash | 3.2 or later | every script, including macOS `/bin/bash` |
+| `df`, `du` | any | usage and the space scan, built in on both platforms |
+| `osascript` or `notify-send` | any | optional, the full-disk notification |
 
-With [TPM](https://github.com/tmux-plugins/tpm):
+| Value | Linux, x86_64 and arm64 | macOS, Intel and Apple Silicon |
+|:------|:------------------------|:-------------------------------|
+| Usage, used, total, free | `df -BG` | `/bin/df -g` |
+| Fill rate and time until full | `df -Pk` | `/bin/df -Pk` |
+| Inodes | `df -i` | `df -i` |
+| Read and write rates | `/proc/diskstats`, whole devices from `/sys/block` | none |
+| Purgeable space | none | `diskutil info` |
+
+The macOS readers call `/bin/df`, so GNU coreutils first on `PATH` does not break them. A value the host has no source for renders empty. Run `src/disk.sh doctor` to see what this host provides.
+
+## Installation
+
+### With TPM
+
+Add the plugin and a placeholder to `~/.tmux.conf`, then press `prefix + I`:
 
 ```tmux
 set -g @plugin 'tmux-revamped/tmux-disk-revamped'
 set -g status-right '#{disk_icon} #{disk_percentage}'
 ```
 
-Press `prefix + I` to install.
+### Manual
+
+```bash
+git clone https://github.com/tmux-revamped/tmux-disk-revamped ~/.tmux/plugins/tmux-disk-revamped
+```
+
+Then add this line to `~/.tmux.conf`, after the lines that set `status-left` and `status-right`, and reload tmux:
+
+```tmux
+run-shell ~/.tmux/plugins/tmux-disk-revamped/disk-revamped.tmux
+```
+
+## Usage
+
+Put placeholders in `status-left` or `status-right`. The plugin replaces them when it loads. [`examples/status-right.tmux.conf`](examples/status-right.tmux.conf) has a complete example.
+
+```tmux
+set -g status-right '#{disk_fg_color}#{disk_icon} #{disk_percentage}#[default] #{disk_used}/#{disk_total} '
+```
+
+| Placeholder | Output |
+|:------------|:-------|
+| `#{disk_percentage}` | used space, for example `55%` |
+| `#{disk_icon}` | the icon of the current usage tier |
+| `#{disk_fg_color}`, `#{disk_bg_color}` | the colors of the current usage tier |
+| `#{disk_used}`, `#{disk_total}`, `#{disk_free}` | sizes in gigabytes, for example `100G`, switching to terabytes such as `1.8T` from 1024G |
+| `#{disk_inodes}` | inode usage, for example `i12%` |
+| `#{disk_purgeable}` | APFS purgeable space on macOS |
+| `#{disk_read}`, `#{disk_write}` | read and write rates on Linux, for example `1.2MB/s` |
+| `#{disk_fill_rate}` | change in used space, for example `+2.1G/h`, empty when steady |
+| `#{disk_full_eta}` | time until full at that rate, for example `3d`, empty when not filling |
+| `#{disk_graph}` | recent usage readings, for example `▄▄▆▆█` |
+| `#{disk_all}` | every mounted real disk, for example `/ 55%, /home 30%` |
+| `#{disk_mounts}` | the mounts named in `@disk_revamped_mounts`, in the same form |
+
+`#{disk_all}` lists `/dev/` filesystems, leaving out `/Volumes/` on macOS and `/boot` and `/snap` on Linux.
 
 ## Configuration
 
 | Option | Default | Meaning |
-|--------|---------|---------|
-| `@disk_revamped_mount` | `/` | the mount point to report; on macOS the sealed system volume `/` reports only its own small share, so set `/System/Volumes/Data` to see the space your files use |
-| `@disk_revamped_interval` | `30` | seconds a reading stays fresh |
-| `@disk_revamped_detail_interval` | `60` | seconds the all-disks listing behind `#{disk_all}` and the detail popup stays fresh |
-| `@disk_revamped_percentage_format` | `%s%%` | format for the value |
-| `@disk_revamped_size_format` | `%sG` | format for used and total sizes |
-| `@disk_revamped_medium_thresh` | `70` | usage percent for the medium tier |
-| `@disk_revamped_high_thresh` | `90` | usage percent for the high tier |
+|:-------|:--------|:--------|
+| `@disk_revamped_mount` | `/` | the mount the usage placeholders report; on macOS `/` is the sealed system volume, so set `/System/Volumes/Data` to see the space your files use |
+| `@disk_revamped_interval` | `30` | seconds a usage reading stays fresh |
+| `@disk_revamped_detail_interval` | `60` | seconds the `#{disk_all}` listing stays fresh |
+| `@disk_revamped_render` | empty | `options` turns on options render mode, see [How it works](#how-it-works) |
+| `@disk_revamped_percentage_format` | `%s%%` | printf format for the usage |
+| `@disk_revamped_size_format` | `%sG` | printf format for sizes below 1024G |
+| `@disk_revamped_medium_thresh`, `@disk_revamped_high_thresh` | `70`, `90` | usage percent where the medium and high tiers start |
 | `@disk_revamped_low_icon` | `▰▱▱` | icon for the low tier |
 | `@disk_revamped_medium_icon` | `▰▰▱` | icon for the medium tier |
 | `@disk_revamped_high_icon` | `▰▰▰` | icon for the high tier |
-| `@disk_revamped_{low,medium,high}_{fg,bg}_color` | empty | tier colors |
-| `@disk_revamped_separator` | `, ` | separator between disks in `#{disk_all}` |
-| `@disk_revamped_mounts` | empty | space or comma list of mounts for `#{disk_mounts}` |
-| `@disk_revamped_inodes_format` | `i%s%%` | format for `#{disk_inodes}` |
+| `@disk_revamped_{low,medium,high}_{fg,bg}_color` | empty | colors per tier |
+| `@disk_revamped_separator` | `, ` | text between disks in `#{disk_all}` and `#{disk_mounts}` |
+| `@disk_revamped_mounts` | empty | mounts for `#{disk_mounts}`, space or comma separated |
+| `@disk_revamped_inodes_format` | `i%s%%` | printf format for `#{disk_inodes}` |
 | `@disk_revamped_history_length` | `20` | readings kept for `#{disk_graph}` |
-| `@disk_revamped_notify` | `0` | set to `1` to send a full-disk desktop notification |
-| `@disk_revamped_popup_key` | `M-d` | key bound to the detail popup; set `off` to bind nothing |
-| `@disk_revamped_eat_key` | empty | key bound to the what-is-eating-space popup |
-| `@disk_revamped_eat_path` | the mount | directory the space scan starts from |
-| `@disk_revamped_eat_count` | `10` | how many of the largest entries the space scan lists |
-| `@disk_revamped_eat_interval` | `60` | seconds a space scan result stays fresh before opening the popup scans again |
-| `@disk_revamped_enable_logging` | `0` | set to `1` to log under `~/.tmux/disk-revamped-logs` |
+| `@disk_revamped_icons` | `ascii` | `nerd` labels every metric with a Nerd Font glyph |
+| `@disk_revamped_<metric>_label` | empty | text printed before one metric's value when the value is not empty; `''` removes the `nerd` label |
+| `@disk_revamped_fixed_width` | `off` | `on` pads each value on the left to its widest form |
+| `@disk_revamped_<metric>_width` | empty | pad width for one metric, which wins over the fixed width |
+| `@disk_revamped_notify` | `0` | `1` sends a notification when usage reaches `@disk_revamped_high_thresh` |
+| `@disk_revamped_popup_key` | `M-d` | prefix key for the detail popup; `off` binds nothing |
+| `@disk_revamped_eat_key` | empty | prefix key for the largest-items popup; empty binds nothing |
+| `@disk_revamped_eat_path` | the mount | directory the space scan lists |
+| `@disk_revamped_eat_count` | `10` | how many of the largest items the scan lists |
+| `@disk_revamped_eat_interval` | `60` | seconds a scan result stays fresh |
 
-### Internal state
+Labels apply to every placeholder except the icon and the two colors. A longer value is never cut by a width.
 
-The plugin manages these options itself. Do not set them.
+### Theme colors
 
-| Option | Holds |
-|--------|-------|
-| `@disk_revamped_published` | space-separated metrics found in `status-left` and `status-right` at load; the background worker publishes these, and reads the fill rate, inodes, mounts and purgeable space only when one of them is listed |
-| `@disk_revamped_notified` | `1` after a full-disk notification fired, until usage drops below `@disk_revamped_high_thresh` again and it resets to `0`, so each crossing notifies once |
+The color options are empty by default, so the plugin adds no color until you set one. Each block below colors the low, medium and high tiers green, yellow and red:
 
-## Labels
-
-Every value placeholder can carry a label, an icon or word printed before the value only when the value is not empty, so each figure on the bar says what it is. Set `@disk_revamped_<metric>_label` for one metric, or `@disk_revamped_icons` to `nerd` to label every metric from a Nerd Font set. A metric's own label wins over the set, and setting it to `''` removes the set's label for that metric. The default, `ascii`, adds no labels, so existing bars render unchanged.
-
-Set `@disk_revamped_fixed_width` to `on` to pad every value on the left to the widest it can get, such as four characters for a percentage, so a value that changes length, like `9%` becoming `42%`, never shifts the rest of a right-aligned status line. `@disk_revamped_<metric>_width` sets one metric's width and wins over the fixed width. A longer value is never cut. Both are off by default.
-
-### Render mode
-
-By default each placeholder becomes a `#()` call, and tmux runs it on every status redraw, which can be about once a second when several plugins share the bar. Set `@disk_revamped_render` to `options` and each placeholder becomes a read of a tmux option instead, such as `#{E:@disk_revamped_out_percentage}`. One background process per server samples the disk every `@disk_revamped_interval` seconds, 30 by default, writes every value the status line uses in a single tmux call, and redraws once, so values change together and nothing renders empty while a job runs. The process exits after its current tick when the server stops, and a config reload replaces it.
-
-```tmux
-set -g @disk_revamped_render 'options'
-set -g @disk_revamped_fixed_width 'on'
-```
-
-| Metric | `nerd` glyph |
-|--------|--------------|
-| `percentage` | U+F02CA |
-| `used` | U+F01BC |
-| `total` | U+F01BC |
-| `free` | U+F0770 |
-| `read` | U+F01DA |
-| `write` | U+F0552 |
-| `inodes` | U+F0645 |
-| `purgeable` | U+F00E2 |
-| `graph` | U+F07B1 |
-| `fill_rate` | U+F0535 |
-| `full_eta` | U+F051F |
-| `mounts` | U+F0253 |
-| `all` | U+F0253 |
-
-## Theme color suggestions
-
-The defaults leave the tier colors empty and rely on the 16 ANSI names remapped by the active tmux theme, so the plugin matches any theme out of the box. For exact hex values, copy one block below. The low tier maps to green, the medium tier to yellow, and the high tier to red.
-
-### Catppuccin Mocha
+<details>
+<summary>Catppuccin Mocha</summary>
 
 ```tmux
 set -g @disk_revamped_low_fg_color '#[fg=#a6e3a1]'
@@ -135,7 +144,10 @@ set -g @disk_revamped_medium_fg_color '#[fg=#f9e2af]'
 set -g @disk_revamped_high_fg_color '#[fg=#f38ba8]'
 ```
 
-### Dracula
+</details>
+
+<details>
+<summary>Dracula</summary>
 
 ```tmux
 set -g @disk_revamped_low_fg_color '#[fg=#50fa7b]'
@@ -143,7 +155,10 @@ set -g @disk_revamped_medium_fg_color '#[fg=#f1fa8c]'
 set -g @disk_revamped_high_fg_color '#[fg=#ff5555]'
 ```
 
-### Nord
+</details>
+
+<details>
+<summary>Nord</summary>
 
 ```tmux
 set -g @disk_revamped_low_fg_color '#[fg=#a3be8c]'
@@ -151,7 +166,10 @@ set -g @disk_revamped_medium_fg_color '#[fg=#ebcb8b]'
 set -g @disk_revamped_high_fg_color '#[fg=#bf616a]'
 ```
 
-### Gruvbox Dark
+</details>
+
+<details>
+<summary>Gruvbox Dark</summary>
 
 ```tmux
 set -g @disk_revamped_low_fg_color '#[fg=#b8bb26]'
@@ -159,7 +177,10 @@ set -g @disk_revamped_medium_fg_color '#[fg=#fabd2f]'
 set -g @disk_revamped_high_fg_color '#[fg=#fb4934]'
 ```
 
-### Tokyo Night
+</details>
+
+<details>
+<summary>Tokyo Night</summary>
 
 ```tmux
 set -g @disk_revamped_low_fg_color '#[fg=#9ece6a]'
@@ -167,7 +188,10 @@ set -g @disk_revamped_medium_fg_color '#[fg=#e0af68]'
 set -g @disk_revamped_high_fg_color '#[fg=#f7768e]'
 ```
 
-### Solarized Dark
+</details>
+
+<details>
+<summary>Solarized Dark</summary>
 
 ```tmux
 set -g @disk_revamped_low_fg_color '#[fg=#859900]'
@@ -175,48 +199,58 @@ set -g @disk_revamped_medium_fg_color '#[fg=#b58900]'
 set -g @disk_revamped_high_fg_color '#[fg=#dc322f]'
 ```
 
-## Popups, notifications, and doctor
+</details>
 
-The detail popup opens on `prefix + M-d`. The what-is-eating-space popup is
-opt-in and bound only when you set its key. Both need tmux 3.2 or newer for
-`display-popup`. The space scan runs `du` in a detached worker and caches the
-result, so the popup opens instantly and never blocks tmux.
+### Internal state
+
+The plugin writes these options itself. Do not set them.
+
+| Option | Holds |
+|:-------|:------|
+| `@disk_revamped_published` | the metrics found in `status-left` and `status-right` at load; the inode, purgeable, fill and mounts probes run only when one of their metrics is listed |
+| `@disk_revamped_out_<metric>` | the published value of each metric in options mode |
+| `@disk_revamped_ticker_pid` | pid of the options-mode background process |
+| `@disk_revamped_option_names` | the options the background process reads in one call per tick |
+| `@disk_revamped_notified` | `1` after a notification fired, until usage drops below the threshold |
+| `@disk_revamped_history` | recent usage readings for `#{disk_graph}` |
+| `@disk_revamped_{percent,used,total,free,all,read,write,inodes,purgeable,mounts,fill_rate,full_eta,eat}` | cached readings, each with a `_ts` timestamp |
+| `@disk_revamped_{rd_raw,wr_raw,io_ts,used_raw,fill_ts}` | the previous counters the rates are measured from |
+
+## Key bindings
+
+| Key | Action | Option |
+|:----|:-------|:-------|
+| `prefix + M-d` | open the detail popup | `@disk_revamped_popup_key` |
+| unbound | open the largest-items popup | `@disk_revamped_eat_key` |
+
+The detail popup shows the mount, its usage, used, free and total space, and the `#{disk_all}` listing. The largest-items popup runs `du` in the background, staying on one filesystem and including dot entries. The first open shows `Scanning` until the result is cached. Enter closes either popup.
 
 ```tmux
-set -g @disk_revamped_popup_key 'D'
-set -g @disk_revamped_eat_key 'E'
+set -g @disk_revamped_eat_key 'M-u'
 ```
 
-Enable a one-shot desktop notification when usage crosses the high threshold. It
-fires once and stays quiet until usage drops back below the threshold.
+## How it works
+
+In the default jobs mode, each placeholder becomes a `#()` call to [`src/disk.sh`](src/disk.sh). The call prints the cached value at once. When the cached usage is older than `@disk_revamped_interval`, it also starts one background refresh, guarded by a lock so parallel calls do not start a second one.
+
+tmux runs every `#()` call on every status redraw. With several plugins on one bar that can be about once a second. Options mode removes those calls:
 
 ```tmux
-set -g @disk_revamped_notify '1'
+set -g @disk_revamped_render 'options'
+set -g @disk_revamped_fixed_width 'on'
 ```
 
-Run the doctor for a capability report:
+Each placeholder then becomes an option read such as `#{E:@disk_revamped_out_percentage}`. One background process per server reads the disk every `@disk_revamped_interval` seconds and writes every value the status line uses in a single tmux call, followed by one redraw. The process exits when the server stops or a config reload starts its replacement.
 
-```bash
-~/.tmux/plugins/tmux-disk-revamped/src/disk.sh doctor
-```
-
-## Support by platform and architecture
-
-Works on every supported platform and architecture with built-in tools, no extra
-package required. macOS (Intel and Apple Silicon) uses `df -g`; Linux (x86_64 and
-arm64) uses `df -BG`. Sizes are reported in gigabytes.
-
-Disk read and write I/O rates come from `/proc/diskstats` deltas and are Linux
-only. macOS does not expose cumulative per-disk read and write byte counters
-without a blocking sampler, so the I/O placeholders stay empty there.
+The read and write rates and the fill rate compare each reading with the one before it. Mount paths have every `#` doubled before they are cached, so a path cannot inject a tmux format.
 
 ## Development
 
-```bash
-make test
-make lint
-make coverage
-```
+| Command | What it runs |
+|:--------|:-------------|
+| `make test` | the bats suite under [`test/`](test) |
+| `make lint` | shellcheck on every shell file |
+| `make coverage` | kcov line coverage on Linux, failing below 95% |
 
 ## License
 
@@ -243,26 +277,26 @@ memory, and `family/bin/sweep` is how it is discharged.
 | [`tmux-bluetooth-revamped`](https://github.com/tmux-revamped/tmux-bluetooth-revamped) | Every connected Bluetooth device and its battery in your tmux status bar, without blocking the render |
 | [`tmux-cpu-revamped`](https://github.com/tmux-revamped/tmux-cpu-revamped) | CPU load, temperature, and frequency in your tmux status bar, without ever blocking the render |
 | [`tmux-disk-revamped`](https://github.com/tmux-revamped/tmux-disk-revamped) | **this plugin**, Disk usage for your tmux status bar, without ever blocking the status render |
-| [`tmux-extract-revamped`](https://github.com/tmux-revamped/tmux-extract-revamped) | Fuzzy-grab any URL, path, or word off the screen and paste it, pure shell, no Python |
-| [`tmux-fzf-revamped`](https://github.com/tmux-revamped/tmux-fzf-revamped) | Jump to any session, window, or pane, or kill it, from one fzf popup |
-| [`tmux-git-revamped`](https://github.com/tmux-revamped/tmux-git-revamped) | Git repository status in your tmux status bar, without ever blocking the render |
-| [`tmux-gpu-revamped`](https://github.com/tmux-revamped/tmux-gpu-revamped) | GPU load, temperature, frequency, and memory for your tmux status bar |
-| [`tmux-kube-revamped`](https://github.com/tmux-revamped/tmux-kube-revamped) | Current Kubernetes context and namespace in your tmux status bar, async, kubectl-free, never blocking |
+| [`tmux-extract-revamped`](https://github.com/tmux-revamped/tmux-extract-revamped) | Pick a URL, path, hash or any other token off the screen with fzf and type it at the cursor, in pure shell |
+| [`tmux-fzf-revamped`](https://github.com/tmux-revamped/tmux-fzf-revamped) | Switch to, kill, rename or create tmux sessions, windows and panes from fzf pickers in a popup |
+| [`tmux-git-revamped`](https://github.com/tmux-revamped/tmux-git-revamped) | Show the active pane's git branch, changes and provider counts in the tmux status bar without blocking it |
+| [`tmux-gpu-revamped`](https://github.com/tmux-revamped/tmux-gpu-revamped) | GPU load, temperature, clock, power and memory in the tmux status bar, from NVIDIA, AMD, Intel and Apple GPUs |
+| [`tmux-kube-revamped`](https://github.com/tmux-revamped/tmux-kube-revamped) | Current Kubernetes context and namespace in the tmux status bar, parsed from kubeconfig without kubectl |
 | [`tmux-launcher-revamped`](https://github.com/tmux-revamped/tmux-launcher-revamped) | Launch any TUI app in a popup or a window, scoped to the current pane's directory, with one configurable bindi |
 | [`tmux-logging-revamped`](https://github.com/tmux-revamped/tmux-logging-revamped) | Capture any pane to a file: live logging, full scrollback, or a one-shot screenshot |
 | [`tmux-music-revamped`](https://github.com/tmux-revamped/tmux-music-revamped) | Now playing in your tmux status bar, without ever blocking the status render |
 | [`tmux-network-revamped`](https://github.com/tmux-revamped/tmux-network-revamped) | Network throughput in your tmux status bar, without ever blocking the render |
 | [`tmux-pain-control-revamped`](https://github.com/tmux-revamped/tmux-pain-control-revamped) | Standard pane and window management bindings for tmux, version aware, vim friendly, and fully configurable |
-| [`tmux-persist-revamped`](https://github.com/tmux-revamped/tmux-persist-revamped) | Save, auto-save, and restore your whole tmux environment, one plugin, no status-line tricks |
-| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | A template for building non-blocking tmux status plugins |
-| [`tmux-pomodoro-revamped`](https://github.com/tmux-revamped/tmux-pomodoro-revamped) | A Pomodoro timer in your tmux status bar, with zero temp files: all state lives in tmux options |
-| [`tmux-ram-revamped`](https://github.com/tmux-revamped/tmux-ram-revamped) | RAM usage for your tmux status bar, without ever blocking the status render |
-| [`tmux-reorder-revamped`](https://github.com/tmux-revamped/tmux-reorder-revamped) | Drag a window tab on the status bar with the mouse to move that window |
-| [`tmux-scroll-revamped`](https://github.com/tmux-revamped/tmux-scroll-revamped) | Mouse wheel that does the right thing: scroll the app directly, copy-mode everywhere else. No app names to con |
-| [`tmux-sensible-revamped`](https://github.com/tmux-revamped/tmux-sensible-revamped) | Sensible tmux defaults that normalize behavior across every tmux version, OS, and terminal, without clobbering |
-| [`tmux-tiling-revamped`](https://github.com/tmux-revamped/tmux-tiling-revamped) | BSP tiling window management for tmux. Eight layouts, nineteen operations, zero dependencies |
-| [`tmux-time-revamped`](https://github.com/tmux-revamped/tmux-time-revamped) | Local clock and world clocks in your tmux status bar, without ever blocking the render |
-| [`tmux-weather-revamped`](https://github.com/tmux-revamped/tmux-weather-revamped) | Weather in your tmux status bar, fetched in the background so the render never waits on the network |
+| [`tmux-persist-revamped`](https://github.com/tmux-revamped/tmux-persist-revamped) | Save every tmux session, window and pane, auto-save on a timer, and restore it all after a reboot |
+| [`tmux-plugin-template`](https://github.com/tmux-revamped/tmux-plugin-template) | The starting point for a tmux-revamped plugin: shared library, bats harness, CI and family tooling |
+| [`tmux-pomodoro-revamped`](https://github.com/tmux-revamped/tmux-pomodoro-revamped) | A Pomodoro timer in the tmux status bar that keeps all of its state in tmux options, with no temp files |
+| [`tmux-ram-revamped`](https://github.com/tmux-revamped/tmux-ram-revamped) | RAM, swap and memory pressure in the tmux status bar, sampled in the background so the render never waits |
+| [`tmux-reorder-revamped`](https://github.com/tmux-revamped/tmux-reorder-revamped) | Drag a window tab along the tmux status bar with the mouse to move that window |
+| [`tmux-scroll-revamped`](https://github.com/tmux-revamped/tmux-scroll-revamped) | Send the mouse wheel to apps that scroll themselves and into tmux copy-mode everywhere else |
+| [`tmux-sensible-revamped`](https://github.com/tmux-revamped/tmux-sensible-revamped) | Sensible tmux defaults, gated by tmux version and terminal, that leave the options you set alone |
+| [`tmux-tiling-revamped`](https://github.com/tmux-revamped/tmux-tiling-revamped) | Tiling window management for tmux: eight layouts including BSP dwindle and spiral, with layout undo |
+| [`tmux-time-revamped`](https://github.com/tmux-revamped/tmux-time-revamped) | Local and world clocks for the tmux status bar, colored by time of day, with countdowns and a DST warning |
+| [`tmux-weather-revamped`](https://github.com/tmux-revamped/tmux-weather-revamped) | Weather for the tmux status bar from wttr.in, fetched in the background so the status line never waits |
 
 ### Checking an installation
 
