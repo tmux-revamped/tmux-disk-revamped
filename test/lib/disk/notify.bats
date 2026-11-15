@@ -6,6 +6,12 @@ setup() {
   setup_test_environment
   unset _DISK_REVAMPED_NOTIFY_LOADED
   source "${BATS_TEST_DIRNAME}/../../../src/lib/disk/notify.sh"
+  _PLATFORM_OS_CACHE="Linux"
+  NOTIFY_CALLS="${TEST_TMPDIR}/calls"
+  mkdir -p "${TEST_TMPDIR}/bin"
+  printf '#!/bin/sh\nprintf "%%s|" "$@" >>"%s"\nprintf "\\n" >>"%s"\n' "${NOTIFY_CALLS}" "${NOTIFY_CALLS}" >"${TEST_TMPDIR}/bin/notify-send"
+  chmod +x "${TEST_TMPDIR}/bin/notify-send"
+  PATH="${TEST_TMPDIR}/bin:${PATH}"
 }
 
 teardown() {
@@ -13,7 +19,6 @@ teardown() {
 }
 
 @test "notify.sh - functions are defined" {
-  function_exists _disk_notify
   function_exists _disk_notify_decide
   function_exists disk_notify_check
 }
@@ -39,59 +44,52 @@ teardown() {
   [[ "$(_disk_notify_decide 95 yy 0)" == "none" ]]
 }
 
-@test "notify.sh - _disk_notify uses osascript on macOS" {
-  _PLATFORM_OS_CACHE="Darwin"
-  local marker="${TEST_TMPDIR}/note"
-  osascript() { echo "$*" > "${marker}"; }
-  _disk_notify "Title" "Message"
-  [[ -f "${marker}" ]]
-}
+@test "notify.sh - disk_notify_check sends nothing while the option is off" {
+  # Arrange
+  set_tmux_option "@disk_revamped_mount" "/data"
 
-@test "notify.sh - _disk_notify uses notify-send on Linux" {
-  _PLATFORM_OS_CACHE="Linux"
-  local marker="${TEST_TMPDIR}/note"
-  notify-send() { echo "$*" > "${marker}"; }
-  _disk_notify "Title" "Message"
-  [[ -f "${marker}" ]]
-}
-
-@test "notify.sh - _disk_notify is a no-op when no notifier exists" {
-  _PLATFORM_OS_CACHE="Plan9"
-  has_command() { return 1; }
-  run _disk_notify "Title" "Message"
-  [[ "${status}" -eq 0 ]]
-}
-
-@test "notify.sh - disk_notify_check does nothing when disabled" {
-  local marker="${TEST_TMPDIR}/fired"
-  _disk_notify() { echo fired > "${marker}"; }
+  # Act
   disk_notify_check 95 90
-  [[ ! -f "${marker}" ]]
+
+  # Assert
+  [ ! -e "${NOTIFY_CALLS}" ]
 }
 
-@test "notify.sh - disk_notify_check fires once when enabled" {
+@test "notify.sh - disk_notify_check notifies once through the shared notifier" {
+  # Arrange
   set_tmux_option "@disk_revamped_notify" "1"
-  local marker="${TEST_TMPDIR}/fired"
-  _disk_notify() { echo fired > "${marker}"; }
+  set_tmux_option "@disk_revamped_mount" "/data"
+
+  # Act
   disk_notify_check 95 90
-  [[ -f "${marker}" ]]
-  [[ "$(get_tmux_option @disk_revamped_notified)" == "1" ]]
-  rm -f "${marker}"
-  disk_notify_check 95 90
-  [[ ! -f "${marker}" ]]
+  disk_notify_check 96 90
+
+  # Assert
+  [ "$(cat "${NOTIFY_CALLS}")" = "--|Disk almost full|Usage at 95% on /data|" ]
+  [ "$(get_tmux_option @disk_revamped_notified)" = "1" ]
 }
 
 @test "notify.sh - disk_notify_check resets below the threshold" {
+  # Arrange
   set_tmux_option "@disk_revamped_notify" "1"
   set_tmux_option "@disk_revamped_notified" "1"
-  _disk_notify() { :; }
+
+  # Act
   disk_notify_check 50 90
-  [[ "$(get_tmux_option @disk_revamped_notified)" == "0" ]]
+
+  # Assert
+  [ "$(get_tmux_option @disk_revamped_notified)" = "0" ]
+  [ ! -e "${NOTIFY_CALLS}" ]
 }
 
 @test "notify.sh - disk_notify_check is a no-op for a steady disk" {
+  # Arrange
   set_tmux_option "@disk_revamped_notify" "1"
-  _disk_notify() { :; }
+
+  # Act
   run disk_notify_check 50 90
-  [[ "${status}" -eq 0 ]]
+
+  # Assert
+  [ "${status}" -eq 0 ]
+  [ ! -e "${NOTIFY_CALLS}" ]
 }

@@ -7,19 +7,7 @@ _DISK_NOTIFY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "${_DISK_NOTIFY_DIR}/../tmux/tmux-ops.sh"
 # shellcheck source=/dev/null
-source "${_DISK_NOTIFY_DIR}/../utils/platform.sh"
-# shellcheck source=/dev/null
-source "${_DISK_NOTIFY_DIR}/../utils/has-command.sh"
-
-_disk_notify() {
-  local title="${1}" message="${2}"
-  if is_macos && has_command osascript; then
-    osascript -e "display notification \"${message}\" with title \"${title}\"" >/dev/null 2>&1
-  elif has_command notify-send; then
-    notify-send "${title}" "${message}" >/dev/null 2>&1
-  fi
-  return 0
-}
+source "${_DISK_NOTIFY_DIR}/../utils/notify.sh"
 
 _disk_notify_decide() {
   local pct="${1%%.*}" thresh="${2}" notified="${3}"
@@ -36,12 +24,12 @@ _disk_notify_decide() {
 
 disk_notify_check() {
   local pct="${1}" thresh="${2}" notified action
-  [[ "$(get_tmux_option "@disk_revamped_notify" "0")" == "1" ]] || return 0
+  notify_enabled "@disk_revamped_notify" || return 0
   notified=$(get_tmux_option "@disk_revamped_notified" "0")
   action=$(_disk_notify_decide "${pct}" "${thresh}" "${notified}")
   case "${action}" in
     fire)
-      _disk_notify "Disk almost full" "Usage at ${pct}% on $(get_tmux_option "@disk_revamped_mount" "/")"
+      notify_send "Disk almost full" "Usage at ${pct}% on $(get_tmux_option "@disk_revamped_mount" "/")"
       set_tmux_option "@disk_revamped_notified" "1"
       ;;
     reset)
@@ -52,6 +40,5 @@ disk_notify_check() {
   return 0
 }
 
-export -f _disk_notify
 export -f _disk_notify_decide
 export -f disk_notify_check
