@@ -254,6 +254,8 @@ The read and write rates and the fill rate compare each reading with the one bef
 | `make lint` | shellcheck on every shell file |
 | `make coverage` | kcov line coverage on Linux, failing below 95% |
 
+On macOS, `brew bundle` installs every tool these targets call, from the [`Brewfile`](Brewfile).
+
 ## License
 
 [MIT](LICENSE), copyright Gustavo Franco.

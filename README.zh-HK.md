@@ -270,6 +270,8 @@ set -g @disk_revamped_fixed_width 'on'
 | `make lint` | 對所有 shell 檔案執行 shellcheck |
 | `make coverage` | 在 Linux 上以 kcov 計算行覆蓋率，低於 95% 時失敗 |
 
+在 macOS 上，執行 `brew bundle` 會根據 [`Brewfile`](Brewfile) 安裝這些目標用到的所有工具。
+
 <a id="license"></a>
 
 ## 授權
