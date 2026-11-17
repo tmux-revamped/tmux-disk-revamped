@@ -265,7 +265,11 @@ main() {
     start) ticker_start "${PLUGIN_DIR}/src/disk.sh"; return 0 ;;
     daemon) disk_daemon; return 0 ;;
     refresh)   disk_refresh; return 0 ;;
-    card)      disk_card; return 0 ;;
+    card)
+      [[ -n "$(cache_get percent)" ]] || disk_refresh
+      disk_card
+      return 0
+      ;;
     eat_view)  disk_eat_view; return 0 ;;
     doctor)    disk_doctor; return 0 ;;
     popup)     disk_show_popup; return 0 ;;

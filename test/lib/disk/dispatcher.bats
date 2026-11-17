@@ -475,3 +475,27 @@ teardown() {
   [[ "${lines[0]}" == "/p #1/it's/disk.sh" ]] || false
   [[ "${lines[1]}" == "card" ]]
 }
+
+@test "disk.sh dispatcher - card reads the disk first when nothing is cached" {
+  # Arrange
+  cache_set percent ""
+  disk_refresh() { cache_set percent "42"; }
+
+  # Act
+  run main card
+
+  # Assert
+  [[ "${output}" == *"Usage 42%"* ]]
+}
+
+@test "disk.sh dispatcher - card leaves a cached reading alone" {
+  # Arrange
+  cache_set percent "77"
+  disk_refresh() { cache_set percent "1"; }
+
+  # Act
+  run main card
+
+  # Assert
+  [[ "${output}" == *"Usage 77%"* ]]
+}

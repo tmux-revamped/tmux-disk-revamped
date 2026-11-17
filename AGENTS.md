@@ -13,7 +13,7 @@ Guidance for anyone, human or agent, changing tmux-disk-revamped. What it is and
 | [`src/lib/disk/`](src/lib/disk) | This member's modules |
 | [`src/lib/utils/constants.sh`](src/lib/utils/constants.sh) | This member's constants, including its version |
 | [`src/lib/utils/`](src/lib/utils), [`src/lib/tmux/`](src/lib/tmux) | The shared library. Every file there except `constants.sh` is identical in every member |
-| [`test/`](test) | The bats suite. `helpers.bash` and `tmux_helpers.bash` are identical in every member; this member's own mocks go in the `_local` files |
+| [`test/`](test) | The bats suite. `helpers.bash` and `tmux_helpers.bash` are identical in every member; this member's own mocks go in the `_local` files. [`test/entry/keys.bats`](test/entry/keys.bats) presses the popup key and the eat key through a second tmux attached to a private server |
 
 ## Names
 
@@ -26,7 +26,7 @@ Guidance for anyone, human or agent, changing tmux-disk-revamped. What it is and
 ## Behaviour
 
 - Shows disk usage, free space, fill rate and inodes in the status line, without blocking the render.
-- `M-d` opens the detail popup.
+- `M-d` opens the detail popup, a card of the cached reading; with nothing cached yet the card reads the disk first, so it never opens with empty values.
 - By default each placeholder becomes a `#()` call that prints the cached value at once; a value older than `@disk_revamped_interval` also starts one background refresh, guarded by a lock so parallel calls start no second one. With `@disk_revamped_render` set to `options`, each placeholder becomes an option read such as `#{E:@disk_revamped_out_percentage}`, and one background process per server writes every value in a single tmux call, then exits when the server stops or a config reload starts a newer one.
 - A disk crossing its high threshold sends a notification through the shared notifier behind `@disk_revamped_notify`, off by default.
 
@@ -44,7 +44,7 @@ Guidance for anyone, human or agent, changing tmux-disk-revamped. What it is and
 
 ## Gaps against FAMILY.md
 
-As of 2026-11-16:
+As of 2026-11-17:
 
 - Every script is bash, under `#!/usr/bin/env bash`, not POSIX `sh`, so it is untested under `dash`, `zsh` and BusyBox `sh`.
 - The code lives in [`src/`](src) and [`src/lib/`](src/lib); there is no `bin/disk-revamped`, `lib/state.sh` or `lib/core.sh`.
@@ -60,4 +60,3 @@ As of 2026-11-16:
 - No `.editorconfig`, `.yamllint.yml` or shfmt; the Makefile has `help`, `test`, `test-unit`, `coverage`, `lint` and `clean`, not the family's targets.
 - `#{disk_read}` and `#{disk_write}` work on Linux only, from `/proc/diskstats`.
 - `#{disk_purgeable}` works on macOS only, from `diskutil info`.
-- No test presses its keys through a real client attached from a second tmux.
