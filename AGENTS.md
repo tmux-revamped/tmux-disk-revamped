@@ -60,3 +60,4 @@ As of 2026-11-17:
 - No `.editorconfig`, `.yamllint.yml` or shfmt; the Makefile has `help`, `test`, `test-unit`, `coverage`, `lint` and `clean`, not the family's targets.
 - `#{disk_read}` and `#{disk_write}` work on Linux only, from `/proc/diskstats`.
 - `#{disk_purgeable}` works on macOS only, from `diskutil info`.
+- `get_tmux_option` keeps a tmux option set to nothing as an empty value, where FAMILY.md has it mean the default; the ticker's own reader already takes the default.
