@@ -65,6 +65,8 @@ disk_show_eat() {
   _tmux display-popup -E "$(_disk_popup_cmd eat_view)"
 }
 
+_DISK_CARD_FIXED_ROWS=9
+
 disk_card() {
   printf 'Disk %s\n' "$(get_tmux_option "@disk_revamped_mount" "/")"
   printf 'Usage %s%%\n' "$(cache_get percent)"
@@ -74,8 +76,33 @@ disk_card() {
   local all hash="#"
   all="$(cache_get all)"
   all="${all//"${hash}${hash}"/${hash}}"
-  [[ -n "${all}" ]] && printf '\nMounts\n%s\n' "${all}"
-  return 0
+  [[ -n "${all}" ]] || return 0
+  printf '\nMounts\n'
+  _disk_card_mounts "${all}" "$(_disk_screen_size)"
+}
+
+_disk_screen_size() {
+  stty size 2>/dev/null </dev/tty || true
+}
+
+_disk_card_mounts() {
+  local all="${1}" size="${2}" rows cols room total
+  rows="${size%% *}"
+  cols="${size##* }"
+  if [[ ! "${rows}" =~ ^[0-9]+$ || ! "${cols}" =~ ^[0-9]+$ ]]; then
+    printf '%s\n' "${all}"
+    return 0
+  fi
+  total=$(printf '%s\n' "${all}" | wc -l)
+  total=$((total))
+  room=$((rows - _DISK_CARD_FIXED_ROWS))
+  ((room >= 1)) || room=1
+  if ((total <= room)); then
+    printf '%s\n' "${all}" | cut -c "1-${cols}"
+    return 0
+  fi
+  printf '%s\n' "${all}" | head -n "${room}" | cut -c "1-${cols}"
+  printf 'and %s more\n' "$((total - room))"
 }
 
 disk_show_popup() {
@@ -90,4 +117,6 @@ export -f disk_eat_refresh
 export -f disk_eat_view
 export -f disk_show_eat
 export -f disk_card
+export -f _disk_screen_size
+export -f _disk_card_mounts
 export -f disk_show_popup

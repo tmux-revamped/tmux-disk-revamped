@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `prefix + M-d` opened a card with empty values when nothing had filled the
   cache yet, as on a status line without a disk placeholder. The card now reads
   the disk first in that case.
+- The card of `prefix + M-d` scrolled its own head out of the popup on a
+  machine with many volumes. It now lists as many mounts as the popup has rows
+  for, cuts each at the popup's width and counts the rest.
 
 ## [2.0.2] - 2026-11-16
 

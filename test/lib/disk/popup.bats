@@ -132,6 +132,67 @@ teardown() {
   [[ "${output}" == *$'Mounts\n/mnt/#x 5%'* ]]
 }
 
+@test "popup.sh - the card keeps its head on screen: mounts beyond the popup's rows are counted, and long ones are cut at its width" {
+  # Arrange
+  _disk_screen_size() { echo "12 14"; }
+  cache_set percent 55
+  cache_set all $'/ 55%\n/home 30%\n/a/very/long/mount/path 96%\n/data 10%\n/backup 80%\n/media 5%'
+
+  # Act
+  run disk_card
+
+  # Assert
+  [[ "${output}" == *$'Mounts\n/ 55%\n/home 30%\n/a/very/long/m\nand 3 more' ]]
+}
+
+@test "popup.sh - mounts that fit the popup are all listed, cut at its width" {
+  # Arrange
+  _disk_screen_size() { echo "40 10"; }
+  cache_set all $'/ 55%\n/a/very/long/mount/path 96%'
+
+  # Act
+  run disk_card
+
+  # Assert
+  [[ "${output}" == *$'Mounts\n/ 55%\n/a/very/lo' ]]
+}
+
+@test "popup.sh - a popup too short for the card still lists one mount" {
+  # Arrange
+  _disk_screen_size() { echo "5 80"; }
+  cache_set all $'/ 55%\n/home 30%'
+
+  # Act
+  run disk_card
+
+  # Assert
+  [[ "${output}" == *$'Mounts\n/ 55%\nand 1 more' ]]
+}
+
+@test "popup.sh - without a terminal to measure every mount is listed whole" {
+  # Arrange
+  _disk_screen_size() { echo ""; }
+  cache_set all $'/ 55%\n/a/very/long/mount/path 96%'
+
+  # Act
+  run disk_card
+
+  # Assert
+  [[ "${output}" == *$'Mounts\n/ 55%\n/a/very/long/mount/path 96%' ]]
+}
+
+@test "popup.sh - the screen size is rows and columns, or nothing without a terminal" {
+  # Arrange
+  local shape='^([0-9]+ [0-9]+)?$'
+
+  # Act
+  run _disk_screen_size
+
+  # Assert
+  [[ "${status}" -eq 0 ]]
+  [[ "${output}" =~ ${shape} ]]
+}
+
 @test "popup.sh - disk_card omits the mounts block when empty" {
   cache_set percent 55
   run disk_card

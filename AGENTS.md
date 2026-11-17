@@ -26,7 +26,7 @@ Guidance for anyone, human or agent, changing tmux-disk-revamped. What it is and
 ## Behaviour
 
 - Shows disk usage, free space, fill rate and inodes in the status line, without blocking the render.
-- `M-d` opens the detail popup, a card of the cached reading; with nothing cached yet the card reads the disk first, so it never opens with empty values.
+- `M-d` opens the detail popup, a card of the cached reading; with nothing cached yet the card reads the disk first, so it never opens with empty values. The card measures the popup it runs in and lists as many mounts as its rows hold, each cut at its width, then counts the rest, so its head never scrolls away on a machine with many volumes.
 - By default each placeholder becomes a `#()` call that prints the cached value at once; a value older than `@disk_revamped_interval` also starts one background refresh, guarded by a lock so parallel calls start no second one. With `@disk_revamped_render` set to `options`, each placeholder becomes an option read such as `#{E:@disk_revamped_out_percentage}`, and one background process per server writes every value in a single tmux call, then exits when the server stops or a config reload starts a newer one.
 - A disk crossing its high threshold sends a notification through the shared notifier behind `@disk_revamped_notify`, off by default.
 
