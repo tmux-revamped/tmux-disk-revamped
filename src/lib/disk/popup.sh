@@ -13,10 +13,19 @@ DISK_SELF="${DISK_SELF:-disk.sh}"
 
 _tmux() { tmux "$@"; }
 
+_disk_hash_free() {
+  local rest="${1}" out="" piece hash="#"
+  while [[ "${rest}" == *"${hash}"* ]]; do
+    printf -v piece '%q' "${rest%%"${hash}"*}"
+    out+="${piece}\"\$(printf '%b' '\\0043')\""
+    rest="${rest#*"${hash}"}"
+  done
+  printf -v piece '%q' "${rest}"
+  printf '%s%s' "${out}" "${piece}"
+}
+
 _disk_popup_cmd() {
-  local cmd hash="#"
-  cmd="$(printf '%q %s; read -r _' "${DISK_SELF}" "${1}")"
-  printf '%s' "${cmd//"${hash}"/${hash}${hash}}"
+  printf '%s %s; read -r _' "$(_disk_hash_free "${DISK_SELF}")" "${1}"
 }
 
 _run_du() {

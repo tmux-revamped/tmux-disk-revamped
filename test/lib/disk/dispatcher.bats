@@ -460,3 +460,18 @@ teardown() {
   # Assert
   [[ "$(sort "${probes}" | paste -sd' ' -)" == "fill inodes mounts purgeable" ]]
 }
+
+@test "disk.sh dispatcher - a popup command carries no hash and still names a path that holds one" {
+  # Arrange
+  local command
+  DISK_SELF="/p #1/it's/disk.sh"
+
+  # Act
+  command=$(_disk_popup_cmd card)
+
+  # Assert
+  [[ "${command}" != *"#"* ]] || false
+  run sh -c "printf '%s\n' ${command%; read -r _}"
+  [[ "${lines[0]}" == "/p #1/it's/disk.sh" ]] || false
+  [[ "${lines[1]}" == "card" ]]
+}
