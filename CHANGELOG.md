@@ -1,5 +1,18 @@
 # Changelog
 
+# [3.0.0](https://github.com/tmux-revamped/tmux-disk-revamped/compare/v2.0.3...v3.0.0) (2026-11-18)
+
+
+### Documentation
+
+* add the settings and value rules ([5de849e](https://github.com/tmux-revamped/tmux-disk-revamped/commit/5de849edc44a71f038824ff055ee26d5f1441261))
+
+
+### BREAKING CHANGES
+
+* decided on its own, apart from the alias rule, which
+is about names.
+
 ## [2.0.3] - 2026-11-17
 
 ### Fixed
