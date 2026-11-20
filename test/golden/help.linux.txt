@@ -1,0 +1,138 @@
+$ disk-revamped help
+disk-revamped - usage, free space and fill rate in the status bar
+
+usage:
+  disk-revamped apply         bind the keys and fill the placeholders
+  disk-revamped list          print what apply would send to tmux
+  disk-revamped status NAME   print one placeholder: percentage, icon,
+                              fg_color, bg_color, used, total, free, read,
+                              write, all, inodes, purgeable, graph,
+                              fill_rate, full_eta or mounts
+  disk-revamped refresh       read the disk now for the status line
+  disk-revamped card          print every figure as a table
+  disk-revamped scan          list the largest items under the scanned path
+  disk-revamped popup         open the detail card in a tmux popup
+  disk-revamped eat           open the largest items in a tmux popup
+  disk-revamped daemon        publish the placeholders on every tick, for
+                              the options render mode
+  disk-revamped doctor        check this machine
+  disk-revamped version       print the version
+  disk-revamped help          print this page
+
+keys:
+  --popup-key KEY             the prefix key for the detail popup, or off
+  --eat-key KEY               the prefix key for the largest items popup
+
+reading:
+  --mount PATH                the mount the usage placeholders report
+  --mounts LIST               the mounts #{disk_mounts} lists, separated by
+                              spaces or commas
+  --interval SECONDS          how long a reading stays fresh
+  --detail-interval SECONDS   how long the list of every disk stays fresh
+  --render MODE               jobs or options
+  --history-length COUNT      readings kept for the graph
+  --notify 0|1                1 sends a notification at the high threshold
+
+tiers:
+  --medium-thresh PERCENT     where the medium usage tier starts
+  --high-thresh PERCENT       where the high usage tier starts
+  --TIER-icon TEXT            what #{disk_icon} prints in the low, medium
+                              or high tier
+  --TIER-fg-color STYLE       what #{disk_fg_color} prints in each tier
+  --TIER-bg-color STYLE       what #{disk_bg_color} prints in each tier
+
+formats:
+  --percentage-format FORMAT  printf format of the usage percent
+  --size-format FORMAT        printf format of a size below 1024G
+  --inodes-format FORMAT      printf format of the inode usage
+  --separator TEXT            text between disks in a list
+  --icons SET                 ascii, or nerd for a Nerd Font glyph before
+                              every metric
+  --METRIC-label TEXT         the label before one metric
+  --fixed-width on|off        on pads every figure to its natural width
+  --METRIC-width COUNT        the width of one metric
+
+scan:
+  --eat-path PATH             the folder the scan lists, default the mount
+  --eat-count COUNT           how many of the largest items it lists
+  --eat-interval SECONDS      how long a scan stays fresh
+
+output:
+  --json                      list prints one JSON object
+  --theme NAME                the look: kodougu, catppuccin-mocha,
+                              catppuccin-latte, dracula, nord, gruvbox,
+                              tokyo-night or mono
+
+environment:
+  DISK_REVAMPED_<SETTING>  the same as the option of that name, such as
+                           DISK_REVAMPED_INTERVAL for --interval
+  DISK_REVAMPED_THEME      the look, when --theme is not given
+  DISK_REVAMPED_ACCENT     a colour such as #CBA6F7 for the accent
+  KODOUGU_THEME            the family look, when neither is given
+  KODOUGU_ACCENT           the family accent, when the tool's is unset
+  NO_COLOR                 turn colour off
+
+tmux options:
+  @disk_revamped_popup_key          the detail popup key (default M-d)
+  @disk_revamped_eat_key            the largest items popup key (default
+                                    none)
+  @disk_revamped_mount              mount the usage placeholders report
+                                    (default <path>
+  @disk_revamped_mounts             mounts for #{disk_mounts} (default
+                                    none)
+  @disk_revamped_interval           seconds a reading stays fresh
+                                    (default 30)
+  @disk_revamped_detail_interval    seconds the list of every disk stays
+                                    fresh (default 60)
+  @disk_revamped_render             jobs or options (default jobs)
+  @disk_revamped_history_length     readings kept for the graph (default 20)
+  @disk_revamped_notify             1 sends a notification at the high
+                                    threshold (default 0)
+  @disk_revamped_medium_thresh      percent that starts the medium tier
+                                    (default 70)
+  @disk_revamped_high_thresh        percent that starts the high tier
+                                    (default 90)
+  @disk_revamped_<tier>_icon        icon of the low, medium or high tier
+                                    (default one, two or three bars)
+  @disk_revamped_<tier>_fg_color    style of #{disk_fg_color} in each tier
+                                    (default none)
+  @disk_revamped_<tier>_bg_color    style of #{disk_bg_color} in each tier
+                                    (default none)
+  @disk_revamped_percentage_format  format of #{disk_percentage}
+                                    (default "%s%%")
+  @disk_revamped_size_format        format of a size below 1024G
+                                    (default "%sG")
+  @disk_revamped_inodes_format      format of #{disk_inodes}
+                                    (default "i%s%%")
+  @disk_revamped_separator          text between disks in a list
+                                    (default ", ")
+  @disk_revamped_icons              ascii or nerd (default ascii)
+  @disk_revamped_fixed_width        on or off (default off)
+  @disk_revamped_<metric>_label     label before one metric (default none)
+  @disk_revamped_<metric>_width     width of one metric (default none)
+  @disk_revamped_eat_path           folder the scan lists (default the
+                                    mount)
+  @disk_revamped_eat_count          items the scan lists (default 10)
+  @disk_revamped_eat_interval       seconds a scan stays fresh (default 60)
+  @revamped_theme                   the family look (default kodougu)
+
+notes:
+  A metric that takes a label and a width is percentage, used, total, free,
+  read, write, inodes, purgeable, graph, fill_rate, full_eta, mounts or
+  all, written with dashes in an option, such as --fill-rate-label.
+  The placeholders are #{disk_<name>} for each name status takes. Each
+  prints the stored reading at once, and starts one background reading when
+  it is older than the interval. The inodes, the purgeable space, the fill
+  rate, the mounts and the per-disk rates are read only for a placeholder
+  the status line uses. With --render options each placeholder reads a tmux
+  option that a background process fills on every tick, so a status refresh
+  starts no process. On macOS / is the sealed system volume: --mount
+  <path> shows the space your files use.
+
+examples:
+  disk-revamped status percentage
+  disk-revamped card
+  disk-revamped --mount <path> scan
+  disk-revamped --icons nerd --fixed-width on apply
+  disk-revamped list --json
+exit 0

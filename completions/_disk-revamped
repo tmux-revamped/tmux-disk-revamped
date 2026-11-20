@@ -1,0 +1,89 @@
+#compdef disk-revamped
+
+_disk_revamped() {
+  local -a commands
+  local state
+  commands=(
+    'apply:bind the keys and fill the status placeholders'
+    'list:print every command apply would send'
+    'status:print one placeholder'
+    'refresh:read the disk now'
+    'card:print every figure as a table'
+    'scan:list the largest items under the scanned path'
+    'popup:open the detail card in a tmux popup'
+    'eat:open the largest items in a tmux popup'
+    'daemon:publish the placeholders on every tick'
+    'doctor:check this machine'
+    'version:print the version'
+    'help:print the help page'
+  )
+
+  _arguments \
+    '--json[list prints one JSON object]' \
+    '--theme[colours of the terminal interface]:theme:(kodougu catppuccin-mocha catppuccin-latte dracula nord gruvbox tokyo-night mono)' \
+    '--popup-key[key of the detail popup]:value:' \
+    '--eat-key[key of the largest items popup]:value:' \
+    '--mount[mount the usage reports]:value:' \
+    '--mounts[mounts that #{disk_mounts} lists]:value:' \
+    '--interval[seconds a reading stays fresh]:value:' \
+    '--detail-interval[seconds the list of every disk stays fresh]:value:' \
+    '--render[jobs or options]:value:(jobs options)' \
+    '--history-length[readings the graph keeps]:value:' \
+    '--notify[1 sends a notification at the high threshold]:value:(0 1)' \
+    '--medium-thresh[percent that starts the medium tier]:value:' \
+    '--high-thresh[percent that starts the high tier]:value:' \
+    '--low-icon[icon of the low tier]:value:' \
+    '--medium-icon[icon of the medium tier]:value:' \
+    '--high-icon[icon of the high tier]:value:' \
+    '--low-fg-color[foreground style of the low tier]:value:' \
+    '--medium-fg-color[foreground style of the medium tier]:value:' \
+    '--high-fg-color[foreground style of the high tier]:value:' \
+    '--low-bg-color[background style of the low tier]:value:' \
+    '--medium-bg-color[background style of the medium tier]:value:' \
+    '--high-bg-color[background style of the high tier]:value:' \
+    '--percentage-format[printf format of the usage]:value:' \
+    '--size-format[printf format of a size below 1024G]:value:' \
+    '--inodes-format[printf format of the inode usage]:value:' \
+    '--separator[text between disks in a list]:value:' \
+    '--icons[ascii or nerd]:value:(ascii nerd)' \
+    '--fixed-width[pad every figure to its natural width]:value:(on off)' \
+    '--percentage-label[label before the usage]:value:' \
+    '--used-label[label before the used space]:value:' \
+    '--total-label[label before the total space]:value:' \
+    '--free-label[label before the free space]:value:' \
+    '--read-label[label before the read rate]:value:' \
+    '--write-label[label before the write rate]:value:' \
+    '--inodes-label[label before the inode usage]:value:' \
+    '--purgeable-label[label before the purgeable space]:value:' \
+    '--graph-label[label before the graph]:value:' \
+    '--fill-rate-label[label before the fill rate]:value:' \
+    '--full-eta-label[label before the time until full]:value:' \
+    '--mounts-label[label before the list of your mounts]:value:' \
+    '--all-label[label before the list of every disk]:value:' \
+    '--percentage-width[width of the usage]:value:' \
+    '--used-width[width of the used space]:value:' \
+    '--total-width[width of the total space]:value:' \
+    '--free-width[width of the free space]:value:' \
+    '--read-width[width of the read rate]:value:' \
+    '--write-width[width of the write rate]:value:' \
+    '--inodes-width[width of the inode usage]:value:' \
+    '--purgeable-width[width of the purgeable space]:value:' \
+    '--graph-width[width of the graph]:value:' \
+    '--fill-rate-width[width of the fill rate]:value:' \
+    '--full-eta-width[width of the time until full]:value:' \
+    '--mounts-width[width of the list of your mounts]:value:' \
+    '--all-width[width of the list of every disk]:value:' \
+    '--eat-path[folder the scan lists]:value:' \
+    '--eat-count[items the scan lists]:value:' \
+    '--eat-interval[seconds a scan stays fresh]:value:' \
+    '1:command:->command' \
+    '2:name:->name'
+
+  case "${state}" in
+  command) _describe 'command' commands ;;
+  name) [[ "${words[2]}" == status ]] && compadd -- percentage icon fg_color bg_color used total read write all free inodes purgeable graph fill_rate full_eta mounts ;;
+  *) ;;
+  esac
+}
+
+_disk_revamped "$@"

@@ -1,0 +1,556 @@
+#!/bin/sh
+[ -n "${ZSH_VERSION:-}" ] && emulate sh
+set -eu
+
+disk_revamped_self="$0"
+case "${disk_revamped_self}" in
+*/*) ;;
+*) disk_revamped_self="$(command -v -- "${disk_revamped_self}")" ;;
+esac
+disk_revamped_lib="$(cd "${disk_revamped_self%/*}/../lib" && pwd)" || exit 1
+
+for disk_revamped_inherited in $(env | sed -n -e 's/^\(REVAMPED_[A-Za-z0-9_]*\)=.*/\1/p' -e 's/^\(DISK_REVAMPED_[A-Za-z0-9_]*_LOADED\)=.*/\1/p'); do
+  case "${disk_revamped_inherited}" in
+  REVAMPED_TEST_*) continue ;;
+  *) unset "${disk_revamped_inherited}" ;;
+  esac
+done
+
+REVAMPED_LIB="${disk_revamped_lib}"
+# shellcheck source=SCRIPTDIR/../lib/core.sh
+. "${REVAMPED_LIB}/core.sh"
+# shellcheck source=SCRIPTDIR/../lib/disk.sh
+. "${REVAMPED_LIB}/disk.sh"
+
+disk_revamped_interface() {
+  # shellcheck disable=SC2034
+  REVAMPED_UI_NAME=disk-revamped REVAMPED_UI_VERSION="${DISK_REVAMPED_VERSION}" REVAMPED_UI_TAGLINE="usage, free space and fill rate in the status bar"
+  if [ -n "${DISK_REVAMPED_ACCENT:-}" ]; then
+    # shellcheck disable=SC2034
+    REVAMPED_UI_ACCENT_CHOICE="${DISK_REVAMPED_ACCENT}" REVAMPED_UI_ACCENT_NAME=DISK_REVAMPED_ACCENT
+  fi
+  # shellcheck source=SCRIPTDIR/../lib/cli.sh
+  . "${REVAMPED_LIB}/cli.sh"
+  # shellcheck source=SCRIPTDIR/../lib/doctor.sh
+  . "${REVAMPED_LIB}/doctor.sh"
+}
+
+disk_revamped_usage() {
+  disk_revamped_interface
+  revamped_cli_usage_error "$1"
+}
+
+disk_revamped_bad() {
+  disk_revamped_interface
+  revamped_cli_die "$1"
+}
+
+disk_revamped_help() {
+  revamped_cli_help_page <<'HELP'
+disk-revamped - usage, free space and fill rate in the status bar
+
+usage:
+  disk-revamped apply         bind the keys and fill the placeholders
+  disk-revamped list          print what apply would send to tmux
+  disk-revamped status NAME   print one placeholder: percentage, icon,
+                              fg_color, bg_color, used, total, free, read,
+                              write, all, inodes, purgeable, graph,
+                              fill_rate, full_eta or mounts
+  disk-revamped refresh       read the disk now for the status line
+  disk-revamped card          print every figure as a table
+  disk-revamped scan          list the largest items under the scanned path
+  disk-revamped popup         open the detail card in a tmux popup
+  disk-revamped eat           open the largest items in a tmux popup
+  disk-revamped daemon        publish the placeholders on every tick, for
+                              the options render mode
+  disk-revamped doctor        check this machine
+  disk-revamped version       print the version
+  disk-revamped help          print this page
+
+keys:
+  --popup-key KEY             the prefix key for the detail popup, or off
+  --eat-key KEY               the prefix key for the largest items popup
+
+reading:
+  --mount PATH                the mount the usage placeholders report
+  --mounts LIST               the mounts #{disk_mounts} lists, separated by
+                              spaces or commas
+  --interval SECONDS          how long a reading stays fresh
+  --detail-interval SECONDS   how long the list of every disk stays fresh
+  --render MODE               jobs or options
+  --history-length COUNT      readings kept for the graph
+  --notify 0|1                1 sends a notification at the high threshold
+
+tiers:
+  --medium-thresh PERCENT     where the medium usage tier starts
+  --high-thresh PERCENT       where the high usage tier starts
+  --TIER-icon TEXT            what #{disk_icon} prints in the low, medium
+                              or high tier
+  --TIER-fg-color STYLE       what #{disk_fg_color} prints in each tier
+  --TIER-bg-color STYLE       what #{disk_bg_color} prints in each tier
+
+formats:
+  --percentage-format FORMAT  printf format of the usage percent
+  --size-format FORMAT        printf format of a size below 1024G
+  --inodes-format FORMAT      printf format of the inode usage
+  --separator TEXT            text between disks in a list
+  --icons SET                 ascii, or nerd for a Nerd Font glyph before
+                              every metric
+  --METRIC-label TEXT         the label before one metric
+  --fixed-width on|off        on pads every figure to its natural width
+  --METRIC-width COUNT        the width of one metric
+
+scan:
+  --eat-path PATH             the folder the scan lists, default the mount
+  --eat-count COUNT           how many of the largest items it lists
+  --eat-interval SECONDS      how long a scan stays fresh
+
+output:
+  --json                      list prints one JSON object
+  --theme NAME                the look: kodougu, catppuccin-mocha,
+                              catppuccin-latte, dracula, nord, gruvbox,
+                              tokyo-night or mono
+
+environment:
+  DISK_REVAMPED_<SETTING>  the same as the option of that name, such as
+                           DISK_REVAMPED_INTERVAL for --interval
+  DISK_REVAMPED_THEME      the look, when --theme is not given
+  DISK_REVAMPED_ACCENT     a colour such as #CBA6F7 for the accent
+  KODOUGU_THEME            the family look, when neither is given
+  KODOUGU_ACCENT           the family accent, when the tool's is unset
+  NO_COLOR                 turn colour off
+
+tmux options:
+  @disk_revamped_popup_key          the detail popup key (default M-d)
+  @disk_revamped_eat_key            the largest items popup key (default
+                                    none)
+  @disk_revamped_mount              mount the usage placeholders report
+                                    (default /)
+  @disk_revamped_mounts             mounts for #{disk_mounts} (default
+                                    none)
+  @disk_revamped_interval           seconds a reading stays fresh
+                                    (default 30)
+  @disk_revamped_detail_interval    seconds the list of every disk stays
+                                    fresh (default 60)
+  @disk_revamped_render             jobs or options (default jobs)
+  @disk_revamped_history_length     readings kept for the graph (default 20)
+  @disk_revamped_notify             1 sends a notification at the high
+                                    threshold (default 0)
+  @disk_revamped_medium_thresh      percent that starts the medium tier
+                                    (default 70)
+  @disk_revamped_high_thresh        percent that starts the high tier
+                                    (default 90)
+  @disk_revamped_<tier>_icon        icon of the low, medium or high tier
+                                    (default one, two or three bars)
+  @disk_revamped_<tier>_fg_color    style of #{disk_fg_color} in each tier
+                                    (default none)
+  @disk_revamped_<tier>_bg_color    style of #{disk_bg_color} in each tier
+                                    (default none)
+  @disk_revamped_percentage_format  format of #{disk_percentage}
+                                    (default "%s%%")
+  @disk_revamped_size_format        format of a size below 1024G
+                                    (default "%sG")
+  @disk_revamped_inodes_format      format of #{disk_inodes}
+                                    (default "i%s%%")
+  @disk_revamped_separator          text between disks in a list
+                                    (default ", ")
+  @disk_revamped_icons              ascii or nerd (default ascii)
+  @disk_revamped_fixed_width        on or off (default off)
+  @disk_revamped_<metric>_label     label before one metric (default none)
+  @disk_revamped_<metric>_width     width of one metric (default none)
+  @disk_revamped_eat_path           folder the scan lists (default the
+                                    mount)
+  @disk_revamped_eat_count          items the scan lists (default 10)
+  @disk_revamped_eat_interval       seconds a scan stays fresh (default 60)
+  @revamped_theme                   the family look (default kodougu)
+
+notes:
+  A metric that takes a label and a width is percentage, used, total, free,
+  read, write, inodes, purgeable, graph, fill_rate, full_eta, mounts or
+  all, written with dashes in an option, such as --fill-rate-label.
+  The placeholders are #{disk_<name>} for each name status takes. Each
+  prints the stored reading at once, and starts one background reading when
+  it is older than the interval. The inodes, the purgeable space, the fill
+  rate, the mounts and the per-disk rates are read only for a placeholder
+  the status line uses. With --render options each placeholder reads a tmux
+  option that a background process fills on every tick, so a status refresh
+  starts no process. On macOS / is the sealed system volume: --mount
+  /System/Volumes/Data shows the space your files use.
+
+examples:
+  disk-revamped status percentage
+  disk-revamped card
+  disk-revamped --mount /home scan
+  disk-revamped --icons nerd --fixed-width on apply
+  disk-revamped list --json
+HELP
+}
+
+disk_revamped_show_version() {
+  disk_revamped_show_version_tmux=$(tmux -V 2>/dev/null) || disk_revamped_show_version_tmux=missing
+  printf '%s %s\n' disk-revamped "${DISK_REVAMPED_VERSION}"
+  printf 'tmux: %s\n' "${disk_revamped_show_version_tmux#tmux }"
+}
+
+disk_revamped_doctor_source() {
+  disk_revamped_doctor_source_path=$(command -v "$1" 2>/dev/null) || disk_revamped_doctor_source_path=""
+  if [ -n "${disk_revamped_doctor_source_path}" ]; then
+    revamped_doctor_line "$1" ok "${disk_revamped_doctor_source_path}, $2"
+    return 0
+  fi
+  revamped_doctor_line "$1" warn "$3"
+}
+
+disk_revamped_doctor_file() {
+  if cat "$2" >/dev/null 2>&1; then
+    revamped_doctor_line "$1" ok "$2, $3"
+    return 0
+  fi
+  revamped_doctor_line "$1" warn "$4"
+}
+
+disk_revamped_doctor_df() {
+  disk_revamped_df_tool
+  disk_revamped_doctor_df_path=$(command -v "${DISK_REVAMPED_DF}" 2>/dev/null) || disk_revamped_doctor_df_path=""
+  if [ -n "${disk_revamped_doctor_df_path}" ]; then
+    disk_revamped_doctor_df_flavor=$(revamped_doctor_flavor "${disk_revamped_doctor_df_path}")
+    revamped_doctor_line df ok "${disk_revamped_doctor_df_path}, ${disk_revamped_doctor_df_flavor}"
+    return 0
+  fi
+  revamped_doctor_line df missing required
+  REVAMPED_DOCTOR_MISSING=$((REVAMPED_DOCTOR_MISSING + 1))
+}
+
+disk_revamped_doctor_macos() {
+  disk_revamped_doctor_source diskutil "reads the purgeable space" "without it #{disk_purgeable} stays empty"
+  revamped_doctor_line io warn "macOS has no per-disk counters, so read and write stay empty"
+}
+
+disk_revamped_doctor_linux() {
+  disk_revamped_doctor_file diskstats /proc/diskstats "holds the read and write counters" "/proc/diskstats cannot be read, so read and write stay empty"
+  revamped_doctor_line purgeable warn "only APFS reports purgeable space, so it stays empty on Linux"
+}
+
+disk_revamped_doctor_stty() {
+  disk_revamped_card_size
+  if [ -n "${DISK_REVAMPED_SIZE}" ]; then
+    revamped_doctor_line terminal ok "the card fits its mounts to the popup"
+    return 0
+  fi
+  revamped_doctor_line terminal warn "no terminal size here, so the card lists every mount"
+}
+
+disk_revamped_doctor_keys() {
+  if [ -n "${DISK_REVAMPED_SKIPPED}" ]; then
+    revamped_doctor_line keys warn "already bound and left alone: ${DISK_REVAMPED_SKIPPED}"
+    return 0
+  fi
+  revamped_doctor_line keys ok "every key it binds is free or its own"
+}
+
+disk_revamped_doctor_popup() {
+  disk_revamped_popup_check
+  case "${DISK_REVAMPED_POPUP_OK}" in
+  1) revamped_doctor_line popup ok "tmux ${DISK_REVAMPED_TMUX} opens the popups" ;;
+  *) revamped_doctor_line popup warn "the popups need tmux ${DISK_REVAMPED_POPUP_SINCE} or later" ;;
+  esac
+}
+
+disk_revamped_doctor_settings() {
+  disk_revamped_doctor_settings_rows=$(disk_revamped_setting_rows)
+  # shellcheck disable=SC2154
+  revamped_doctor_settings "${DISK_REVAMPED_KINDS}" "${disk_revamped_doctor_settings_rows}"
+}
+
+disk_revamped_doctor() {
+  disk_revamped_plan
+  revamped_doctor_tmux
+  disk_revamped_doctor_popup
+  disk_revamped_doctor_df
+  if revamped_is_macos; then
+    disk_revamped_doctor_macos
+  else
+    disk_revamped_doctor_linux
+  fi
+  disk_revamped_doctor_stty
+  revamped_doctor_notifier
+  disk_revamped_doctor_settings
+  disk_revamped_doctor_keys
+  revamped_doctor_gum
+  revamped_doctor_core_tools du sort awk sed tr date cat
+  revamped_doctor_finish
+  [ "${REVAMPED_DOCTOR_MISSING}" -eq 0 ] || exit 1
+}
+
+disk_revamped_list() {
+  disk_revamped_plan
+  if [ -n "${disk_revamped_json}" ]; then
+    disk_revamped_json
+    return 0
+  fi
+  disk_revamped_lines
+}
+
+disk_revamped_apply_command() {
+  disk_revamped_apply
+  disk_revamped_apply_command_sent=$(disk_revamped_bindings)
+  case "${disk_revamped_apply_command_sent}" in
+  1) printf 'Applied. 1 key is bound.\n' ;;
+  *) printf 'Applied. %s keys are bound.\n' "${disk_revamped_apply_command_sent}" ;;
+  esac
+}
+
+disk_revamped_read_all() {
+  disk_revamped_load
+  DISK_REVAMPED_WANT="${DISK_REVAMPED_S_published}"
+  [ "$1" != all ] || DISK_REVAMPED_WANT="${DISK_REVAMPED_METRICS}"
+  disk_revamped_refresh
+  [ "${DISK_REVAMPED_STORED}" = 1 ] || disk_revamped_bad "no tmux server is running, so the reading has nowhere to go"
+}
+
+disk_revamped_closing() {
+  if [ -z "${DISK_REVAMPED_S_percent}" ]; then
+    printf '%s. %s has no reading.\n' "$1" "${DISK_REVAMPED_S_mount}"
+    return 0
+  fi
+  printf '%s. %s%% of %s is used.\n' "$1" "${DISK_REVAMPED_S_percent}" "${DISK_REVAMPED_S_mount}"
+}
+
+disk_revamped_refresh_command() {
+  disk_revamped_read_all published
+  disk_revamped_closing Refreshed
+}
+
+disk_revamped_card_row() {
+  DISK_REVAMPED_CARD="${DISK_REVAMPED_CARD}$1	${2:--}
+"
+}
+
+disk_revamped_card_value() {
+  disk_revamped_value "$2"
+  disk_revamped_card_row "$1" "${DISK_REVAMPED_OUT}"
+}
+
+disk_revamped_card_size() {
+  DISK_REVAMPED_SIZE=$(stty size <&2 2>/dev/null) || DISK_REVAMPED_SIZE=""
+}
+
+disk_revamped_card_trim() {
+  # shellcheck disable=SC2154
+  printf '%s\n' "$1" | LC_ALL=C awk -v size="$2" -v reserve="${DISK_REVAMPED_CARD_ROOM}" '
+    BEGIN {
+      split(size, dims, " ")
+      room = (dims[1] > reserve) ? dims[1] - reserve : 1
+      width = (dims[2] > 20) ? dims[2] - 12 : 8
+    }
+    NF { lines[++total] = $0 }
+    END {
+      shown = (dims[1] > 0 && total > room) ? room - 1 : total
+      for (i = 1; i <= shown; i++) {
+        value = lines[i]
+        sub(/^.* /, "", value)
+        label = lines[i]
+        sub(/ [^ ]*$/, "", label)
+        printf "%s\t%s\n", (dims[1] > 0) ? substr(label, 1, width) : label, value
+      }
+      if (shown < total) { printf "and %d more\t-\n", total - shown }
+    }
+  '
+}
+
+disk_revamped_card_disks() {
+  [ -n "${DISK_REVAMPED_S_all}" ] || return 0
+  revamped_publish_replace "${DISK_REVAMPED_SEP}" "
+" "${DISK_REVAMPED_S_all}"
+  disk_revamped_card_size
+  disk_revamped_card_disks_rows=$(disk_revamped_card_trim "${revamped_publish_replace_out}" "${DISK_REVAMPED_SIZE}")
+  DISK_REVAMPED_CARD="${DISK_REVAMPED_CARD}${disk_revamped_card_disks_rows}
+"
+}
+
+disk_revamped_card_rows() {
+  DISK_REVAMPED_CARD=""
+  disk_revamped_card_row Mount "${DISK_REVAMPED_S_mount}"
+  disk_revamped_card_value Usage percentage
+  disk_revamped_card_value Used used
+  disk_revamped_card_value Free free
+  disk_revamped_card_value Total total
+  disk_revamped_card_value Inodes inodes
+  disk_revamped_card_value Read read
+  disk_revamped_card_value Write write
+  disk_revamped_card_value Purgeable purgeable
+  disk_revamped_card_value "Fill rate" fill_rate
+  disk_revamped_card_value "Full in" full_eta
+  disk_revamped_card_value History graph
+  disk_revamped_card_disks
+}
+
+disk_revamped_card() {
+  disk_revamped_read_all all
+  disk_revamped_card_rows
+  disk_revamped_card_closing=$(disk_revamped_closing Read)
+  if revamped_ui_out; then
+    printf 'Figure\tValue\n%s' "${DISK_REVAMPED_CARD}" | revamped_ui_table
+    revamped_ui_done "${disk_revamped_card_closing}"
+    return 0
+  fi
+  printf '%s' "${DISK_REVAMPED_CARD}" | awk -F '\t' 'NF { printf "%-18s %s\n", $1, $2 }'
+  printf '%s\n' "${disk_revamped_card_closing}"
+}
+
+disk_revamped_scan_command() {
+  disk_revamped_eat_scan
+  if [ -z "${DISK_REVAMPED_SCAN}" ]; then
+    printf 'Nothing to list under %s.\n' "${DISK_REVAMPED_TARGET}"
+    return 0
+  fi
+  revamped_publish_replace "${DISK_REVAMPED_SEP}" "
+" "${DISK_REVAMPED_SCAN}"
+  disk_revamped_scan_command_count=$(printf '%s\n' "${revamped_publish_replace_out}" | awk 'END { print NR }')
+  disk_revamped_scan_command_done="Listed. ${disk_revamped_scan_command_count} largest items under ${DISK_REVAMPED_TARGET}."
+  if revamped_ui_out; then
+    printf '%s\n' "${revamped_publish_replace_out}" | awk 'BEGIN { print "Size\tItem" } { size = $1; sub(/^[^ ]+ /, ""); printf "%s\t%s\n", size, $0 }' | revamped_ui_table
+    revamped_ui_done "${disk_revamped_scan_command_done}"
+    return 0
+  fi
+  printf '%s\n' "${revamped_publish_replace_out}" | awk '{ size = $1; sub(/^[^ ]+ /, ""); printf "%-8s %s\n", size, $0 }'
+  printf '%s\n' "${disk_revamped_scan_command_done}"
+}
+
+disk_revamped_status_command() {
+  [ -n "${1:-}" ] || disk_revamped_usage "no placeholder given"
+  disk_revamped_status "$1"
+}
+
+disk_revamped_daemon_command() {
+  set +e
+  disk_revamped_daemon
+  disk_revamped_daemon_command_ended=$?
+  set -e
+  [ "${disk_revamped_daemon_command_ended}" -ne 0 ] || exec "${disk_revamped_self}" daemon
+}
+
+disk_revamped_start_menu() {
+  revamped_cli_require_terminal
+  disk_revamped_start_menu_choice=$(revamped_cli_menu "Show the disk now" "Find the largest items" "List the bindings" "Apply them now" "Check this machine" "Help")
+  case "${disk_revamped_start_menu_choice}" in
+  "Show the disk now") disk_revamped_card ;;
+  "Find the largest items") disk_revamped_scan_command ;;
+  "List the bindings") disk_revamped_list ;;
+  "Apply them now") disk_revamped_apply_command ;;
+  "Check this machine") disk_revamped_doctor ;;
+  *) disk_revamped_help ;;
+  esac
+}
+
+disk_revamped_dispatch() {
+  case "${1:-}" in
+  doctor) disk_revamped_doctor ;;
+  version | --version | -V) disk_revamped_show_version ;;
+  help | --help | -h) disk_revamped_help ;;
+  list) disk_revamped_list ;;
+  card) disk_revamped_card ;;
+  scan) disk_revamped_scan_command ;;
+  refresh) disk_revamped_refresh_command ;;
+  "") disk_revamped_start_menu ;;
+  *) revamped_cli_usage_error "unknown command '$1'" ;;
+  esac
+}
+
+disk_revamped_known() {
+  [ "$1" != --theme ] || return 0
+  disk_revamped_known_name=$(disk_revamped_setting_name "$1")
+  [ -n "${disk_revamped_known_name}" ] || disk_revamped_usage "unknown option '$1'"
+}
+
+disk_revamped_set() {
+  disk_revamped_set_upper=$(printf '%s\n' "$1" | tr '[:lower:]' '[:upper:]')
+  export "DISK_REVAMPED_${disk_revamped_set_upper}=$2"
+}
+
+disk_revamped_option() {
+  disk_revamped_option_name=$(disk_revamped_setting_name "$1")
+  [ -n "${disk_revamped_option_name}" ] || disk_revamped_usage "unknown option '$1'"
+  disk_revamped_set "${disk_revamped_option_name}" "$2"
+}
+
+disk_revamped_check_numbers() {
+  disk_revamped_check_numbers_bad=$(env | awk -F '=' '$1 ~ /^DISK_REVAMPED_(INTERVAL|DETAIL_INTERVAL|EAT_INTERVAL|EAT_COUNT|HISTORY_LENGTH|MEDIUM_THRESH|HIGH_THRESH|[A-Z_]+_WIDTH)$/ && $1 != "DISK_REVAMPED_FIXED_WIDTH" { value = substr($0, length($1) + 2); if (value != "" && value !~ /^[0-9]+$/) { name = tolower(substr($1, 15)); gsub(/_/, "-", name); if (bad == "") { bad = name "=" value } } } END { if (bad != "") { print bad } }')
+  [ -z "${disk_revamped_check_numbers_bad}" ] || disk_revamped_bad "--${disk_revamped_check_numbers_bad%%=*} must be a whole number, got: ${disk_revamped_check_numbers_bad#*=}"
+}
+
+disk_revamped_check_choices() {
+  case "${DISK_REVAMPED_ICONS-ascii}" in
+  ascii | nerd) : ;;
+  *) disk_revamped_bad "--icons must be ascii or nerd, got: ${DISK_REVAMPED_ICONS}" ;;
+  esac
+  case "${DISK_REVAMPED_FIXED_WIDTH-off}" in
+  on | off) : ;;
+  *) disk_revamped_bad "--fixed-width must be on or off, got: ${DISK_REVAMPED_FIXED_WIDTH}" ;;
+  esac
+  case "${DISK_REVAMPED_NOTIFY-0}" in
+  0 | 1) : ;;
+  *) disk_revamped_bad "--notify must be 0 or 1, got: ${DISK_REVAMPED_NOTIFY}" ;;
+  esac
+  case "${DISK_REVAMPED_RENDER-jobs}" in
+  jobs | options) return 0 ;;
+  *) disk_revamped_bad "--render must be jobs or options, got: ${DISK_REVAMPED_RENDER}" ;;
+  esac
+}
+
+disk_revamped_check() {
+  disk_revamped_check_numbers
+  disk_revamped_check_choices
+}
+
+disk_revamped_main() {
+  disk_revamped_theme="${DISK_REVAMPED_THEME:-}" disk_revamped_json="" disk_revamped_left=$# disk_revamped_rest=0
+  while [ "${disk_revamped_left}" -gt 0 ]; do
+    disk_revamped_arg="$1"
+    shift
+    disk_revamped_left=$((disk_revamped_left - 1))
+    case "${disk_revamped_rest}:${disk_revamped_arg}" in
+    1:*) set -- "$@" "${disk_revamped_arg}" ;;
+    0:--) disk_revamped_rest=1 ;;
+    0:--json) disk_revamped_json=1 ;;
+    0:-h | 0:-V | 0:--help | 0:--version) set -- "$@" "${disk_revamped_arg}" ;;
+    0:--theme=*) disk_revamped_theme="${disk_revamped_arg#--theme=}" ;;
+    0:--*=*) disk_revamped_option "${disk_revamped_arg%%=*}" "${disk_revamped_arg#*=}" ;;
+    0:--*)
+      disk_revamped_known "${disk_revamped_arg}"
+      [ "${disk_revamped_left}" -gt 0 ] || disk_revamped_usage "option '${disk_revamped_arg}' needs a value"
+      if [ "${disk_revamped_arg}" = --theme ]; then
+        disk_revamped_theme="$1"
+      else
+        disk_revamped_option "${disk_revamped_arg}" "$1"
+      fi
+      shift
+      disk_revamped_left=$((disk_revamped_left - 1))
+      ;;
+    0:-?*) disk_revamped_usage "unknown option '${disk_revamped_arg}'" ;;
+    *) set -- "$@" "${disk_revamped_arg}" ;;
+    esac
+  done
+  disk_revamped_check
+  disk_revamped_run "${disk_revamped_theme}" "$@"
+}
+
+disk_revamped_run() {
+  disk_revamped_run_theme="$1"
+  shift
+  [ -z "${disk_revamped_json}" ] || [ "${1:-}" = list ] || disk_revamped_usage "option '--json' works only with list"
+  case "${1:-}" in
+  apply) disk_revamped_apply ;;
+  status) disk_revamped_status_command "${2:-}" ;;
+  popup) disk_revamped_popup ;;
+  eat) disk_revamped_eat ;;
+  daemon) disk_revamped_daemon_command ;;
+  *)
+    disk_revamped_interface
+    revamped_cli_start "${disk_revamped_run_theme}"
+    disk_revamped_dispatch "$@"
+    ;;
+  esac
+}
+
+disk_revamped_main "$@"

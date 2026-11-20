@@ -1,0 +1,328 @@
+.TH DISK-REVAMPED 1 "2026-11-19" "disk-revamped" "User Commands"
+.SH NAME
+disk-revamped \- usage, free space and fill rate in the tmux status bar
+.SH SYNOPSIS
+.B disk-revamped
+.RI [ options ]
+.I command
+.RI [ name ]
+.SH DESCRIPTION
+.B disk-revamped
+shows how full a disk is in the tmux status line, with its used, free and total space, the inode usage, the read and write rates, the fill rate and the time until full, a graph of the recent readings, the purgeable space on macOS, and a list of every real disk or of the mounts you name. The usage comes from
+.B df \-Pk
+on both systems, through
+.B /bin/df
+on macOS, so GNU coreutils first on PATH does not change it.
+.PP
+The entry point
+.B disk-revamped.tmux
+runs
+.B apply
+once when tmux loads the plugin, which binds the popup keys in one tmux call and replaces the placeholders #{disk_percentage}, #{disk_icon}, #{disk_fg_color}, #{disk_bg_color}, #{disk_used}, #{disk_total}, #{disk_free}, #{disk_read}, #{disk_write}, #{disk_all}, #{disk_inodes}, #{disk_purgeable}, #{disk_graph}, #{disk_fill_rate}, #{disk_full_eta} and #{disk_mounts} in status-left and status-right.
+.PP
+A status call prints the stored reading at once. When the reading is older than the interval it starts one in the background, so the status line never waits. The inodes, the purgeable space, the fill rate, the mounts and the per-disk rates are read only for a placeholder the status line uses. Run with no command on a terminal, the tool offers a menu.
+.PP
+The read and write rates come from /proc/diskstats on Linux, summed over the whole devices in /sys/block, and compare each reading with the one before it; macOS has no such counters, so they stay empty there. The purgeable space comes from diskutil on macOS and is empty on Linux.
+.SH COMMANDS
+.TP
+.B apply
+Bind the popup keys and replace the status placeholders now. In the options render mode it also starts the daemon.
+.TP
+.B list
+Print every tmux command apply would send, one per line, and change nothing.
+.TP
+.B status
+Print one placeholder from the stored reading: percentage, icon, fg_color, bg_color, used, total, read, write, all, free, inodes, purgeable, graph, fill_rate, full_eta, mounts. The status line runs it, and it starts a reading in the background when the stored one is older than the interval. A name that is none of them prints nothing.
+.TP
+.B refresh
+Read the disk now, read the details the status line uses, store the reading and say how full the disk is.
+.TP
+.B card
+Read everything now and print one row per figure, then every disk, cut to the rows and the width of the terminal it runs in.
+.TP
+.B scan
+List the largest items under the scanned path, with their sizes, biggest first, dot entries included. A scan stays fresh for the scan interval.
+.TP
+.B popup
+Open the card in a tmux popup, which Enter closes. The popup key runs it. A tmux older than 3.2 says so.
+.TP
+.B eat
+Open the scan in a tmux popup, which Enter closes. The eat key runs it.
+.TP
+.B daemon
+Read the disk and publish every placeholder the status line uses, once per interval, until another daemon takes over or the tmux server ends. apply starts it in the options render mode.
+.TP
+.B doctor
+Print one row per dependency: tmux, the popups, df, each tool or file a figure comes from, the terminal size, the notifier, the settings, the keys it found bound, gum and the core tools.
+.br
+A settings row names any setting whose value it does not know.
+.br
+Exits 1 only when a required tool is missing.
+.TP
+.B version
+Print the version, then the tmux version.
+.TP
+.B help
+Print the help page.
+.SH OPTIONS
+.TP
+.B \-\-json
+.B list
+prints one JSON object.
+.TP
+.BI \-\-theme " name"
+Colours of the terminal interface:
+.BR kodougu ,
+.BR catppuccin\-mocha ,
+.BR catppuccin\-latte ,
+.BR dracula ,
+.BR nord ,
+.BR gruvbox ,
+.B tokyo\-night
+or
+.BR mono .
+The default is
+.BR kodougu .
+.TP
+.BI \-\- setting " value"
+Any tmux option below, named with dashes, such as
+.B \-\-interval
+or
+.BR \-\-fill\-rate\-label .
+It also takes the form
+.IR \-\-setting = value ,
+and outranks the environment and the tmux option. Given to
+.BR apply ,
+it rides on the popup keys and on every status call.
+.SH ENVIRONMENT
+.TP
+.BI DISK_REVAMPED_ SETTING
+Any tmux option below in capitals, such as
+.BR DISK_REVAMPED_INTERVAL .
+It outranks the tmux option, and an empty value is used as given.
+.TP
+.B DISK_REVAMPED_THEME
+The theme when
+.B \-\-theme
+is not given.
+.TP
+.B DISK_REVAMPED_ACCENT
+A colour such as #CBA6F7 that replaces the accent of the theme.
+.TP
+.B KODOUGU_THEME
+The theme of every kodougu and tmux-revamped tool, when neither
+.B \-\-theme
+nor
+.B DISK_REVAMPED_THEME
+is set.
+.TP
+.B KODOUGU_ACCENT
+The accent of every kodougu and tmux-revamped tool, when
+.B DISK_REVAMPED_ACCENT
+is not set.
+.TP
+.B NO_COLOR
+Turns colour off in every theme.
+.SH TMUX OPTIONS
+An empty tmux option means its default. A key set to off binds nothing.
+.TP
+.B @disk_revamped_popup_key
+The prefix key that opens the detail popup. off binds nothing. The default is M\-d, left alone when someone else holds it.
+.TP
+.B @disk_revamped_eat_key
+The prefix key that opens the largest items popup. off or empty binds nothing. The default is none.
+.TP
+.B @disk_revamped_mount
+The mount the usage placeholders report. The default is /. On macOS / is the sealed system volume, so /System/Volumes/Data shows the space your files use.
+.TP
+.B @disk_revamped_mounts
+The mounts #{disk_mounts} lists, separated by spaces or commas. A mount that does not exist is left out. The default is none.
+.TP
+.B @disk_revamped_interval
+Seconds a reading stays fresh before df is run again. The default is 30.
+.TP
+.B @disk_revamped_detail_interval
+Seconds the list of every disk stays fresh. The default is 60.
+.TP
+.B @disk_revamped_render
+jobs turns each placeholder into a call the status line runs. options turns it into a read of a tmux option that the daemon fills, so a status refresh starts no process. Any other value means jobs. The default is jobs.
+.TP
+.B @disk_revamped_history_length
+How many readings #{disk_graph} keeps. The default is 20.
+.TP
+.B @disk_revamped_notify
+1 sends a desktop notification when the usage reaches the high threshold, and again after it has fallen below it. The default is 0.
+.TP
+.B @disk_revamped_medium_thresh
+Usage percent at which the tier becomes medium. The default is 70.
+.TP
+.B @disk_revamped_high_thresh
+Usage percent at which the tier becomes high, and at which a notification is sent. The default is 90.
+.TP
+.B @disk_revamped_low_icon
+What #{disk_icon} prints in the low tier. The default is one bar of three.
+.TP
+.B @disk_revamped_medium_icon
+What #{disk_icon} prints in the medium tier. The default is two bars of three.
+.TP
+.B @disk_revamped_high_icon
+What #{disk_icon} prints in the high tier. The default is three bars.
+.TP
+.B @disk_revamped_low_fg_color
+The style #{disk_fg_color} prints in the low tier. The default is none.
+.TP
+.B @disk_revamped_medium_fg_color
+The style #{disk_fg_color} prints in the medium tier. The default is none.
+.TP
+.B @disk_revamped_high_fg_color
+The style #{disk_fg_color} prints in the high tier. The default is none.
+.TP
+.B @disk_revamped_low_bg_color
+The style #{disk_bg_color} prints in the low tier. The default is none.
+.TP
+.B @disk_revamped_medium_bg_color
+The style #{disk_bg_color} prints in the medium tier. The default is none.
+.TP
+.B @disk_revamped_high_bg_color
+The style #{disk_bg_color} prints in the high tier. The default is none.
+.TP
+.B @disk_revamped_percentage_format
+printf format of #{disk_percentage}. The default is %s%%.
+.TP
+.B @disk_revamped_size_format
+printf format of a size below 1024G; from 1024G a size is terabytes with one decimal, such as 1.8T. The default is %sG.
+.TP
+.B @disk_revamped_inodes_format
+printf format of #{disk_inodes}. The default is i%s%%.
+.TP
+.B @disk_revamped_separator
+Text between disks in #{disk_all} and #{disk_mounts}. The default is a comma and a space.
+.TP
+.B @disk_revamped_icons
+ascii labels nothing. nerd puts a Nerd Font glyph before every metric that takes a label. The default is ascii.
+.TP
+.B @disk_revamped_fixed_width
+on pads each figure on the left to its natural width, so a change from 9% to 42% does not shift the status line. The default is off.
+.TP
+.B @disk_revamped_percentage_label
+Text printed before the usage, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_used_label
+Text printed before the used space, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_total_label
+Text printed before the total space, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_free_label
+Text printed before the free space, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_read_label
+Text printed before the read rate, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_write_label
+Text printed before the write rate, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_inodes_label
+Text printed before the inode usage, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_purgeable_label
+Text printed before the purgeable space, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_graph_label
+Text printed before the graph, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_fill_rate_label
+Text printed before the fill rate, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_full_eta_label
+Text printed before the time until full, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_mounts_label
+Text printed before the list of your mounts, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_all_label
+Text printed before the list of every disk, only when the value is not empty. The default is none.
+.TP
+.B @disk_revamped_percentage_width
+Characters the usage is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_used_width
+Characters the used space is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_total_width
+Characters the total space is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_free_width
+Characters the free space is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_read_width
+Characters the read rate is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_write_width
+Characters the write rate is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_inodes_width
+Characters the inode usage is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_purgeable_width
+Characters the purgeable space is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_graph_width
+Characters the graph is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_fill_rate_width
+Characters the fill rate is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_full_eta_width
+Characters the time until full is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_mounts_width
+Characters the list of your mounts is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_all_width
+Characters the list of every disk is padded to on the left. A longer value is never cut. The default is none.
+.TP
+.B @disk_revamped_eat_path
+The folder the largest items popup and scan list. The default is the mount.
+.TP
+.B @disk_revamped_eat_count
+How many of the largest items the scan lists. The default is 10.
+.TP
+.B @disk_revamped_eat_interval
+Seconds a scan result stays fresh. The default is 60.
+.TP
+.B @revamped_theme
+The theme of every tmux-revamped tool, when nothing else sets one. The default
+is
+.BR kodougu .
+.PP
+The stored reading lives in
+.BR @disk_revamped_percent ,
+.BR _used ,
+.BR _total ,
+.BR _free ,
+.BR _inodes ,
+.BR _purgeable ,
+.BR _read ,
+.BR _write ,
+.BR _fill_rate ,
+.BR _full_eta ,
+.BR _all ,
+.BR _mounts_list ,
+.BR _history
+and
+.BR _eat ,
+with the time of each reading in options that end in _ts. apply records the placeholders the status line uses in
+.BR @disk_revamped_published ,
+the daemon writes each one to
+.BI @disk_revamped_out_ name
+and keeps its process id in
+.BR @disk_revamped_ticker_pid .
+.SH EXIT STATUS
+0 on success, 1 on any failure.
+.SH SEE ALSO
+.BR tmux (1),
+.BR df (1),
+.BR du (1),
+.BR diskutil (8),
+.BR gum (1)

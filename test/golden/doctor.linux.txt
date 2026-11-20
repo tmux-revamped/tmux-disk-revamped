@@ -1,0 +1,19 @@
+$ disk-revamped doctor
+tmux               ok       <path>, 3.8
+popup              ok       tmux 3.8 opens the popups
+df                 ok       <path>, <flavor>
+diskstats          warn     <path> cannot be read, so read and write stay empty
+purgeable          warn     only APFS reports purgeable space, so it stays empty on Linux
+terminal           warn     no terminal size here, so the card lists every mount
+notifier           warn     no osascript or notify-send, so notifications stay in the status line
+settings           ok       every option holds a value it knows
+keys               ok       every key it binds is free or its own
+gum                ok       <path>
+du                 ok       <path>, <flavor>
+sort               ok       <path>, <flavor>
+awk                ok       <path>, <flavor>
+sed                ok       <path>, <flavor>
+tr                 ok       <path>, <flavor>
+date               ok       <path>, <flavor>
+cat                ok       <path>, <flavor>
+exit 0

@@ -2,242 +2,269 @@
 
 # tmux-disk-revamped
 
-<strong>在 tmux 状态栏显示磁盘用量，从不阻塞状态栏渲染。</strong>
+<strong>在 tmux 状态栏显示磁盘用量，绝不阻塞状态栏渲染。</strong>
 
-[English](README.md) | [日本語](README.ja.md) | 简体中文 | [繁體中文（香港）](README.zh-HK.md)
+[English](README.md) &nbsp;|&nbsp; [日本語](README.ja.md) &nbsp;|&nbsp; 简体中文 &nbsp;|&nbsp; [繁體中文（香港）](README.zh-HK.md)
 
-[![family](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-disk-revamped/family.yml?branch=main&style=flat-square&label=family)](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/family.yml)
-[![tests](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-disk-revamped/tests.yml?branch=main&style=flat-square&label=tests)](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/tests.yml)
+[![ci](https://img.shields.io/github/actions/workflow/status/tmux-revamped/tmux-disk-revamped/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/tmux-revamped/tmux-disk-revamped/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/tmux-revamped/tmux-disk-revamped?style=flat-square&label=release)](https://github.com/tmux-revamped/tmux-disk-revamped/releases/latest)
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/tmux-revamped/tmux-disk-revamped?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/tmux-revamped/tmux-disk-revamped)
 [![license](https://img.shields.io/github/license/tmux-revamped/tmux-disk-revamped?style=flat-square&label=license)](LICENSE)
 
 <p align="center">
-  <a href="#what-it-does">功能</a> |
-  <a href="#requirements">环境要求</a> |
-  <a href="#installation">安装</a> |
-  <a href="#usage">用法</a> |
-  <a href="#configuration">配置</a> |
-  <a href="#key-bindings">快捷键</a> |
-  <a href="#how-it-works">工作原理</a>
+  <a href="#quick-start"><strong>快速开始</strong></a> &nbsp;|&nbsp;
+  <a href="#usage">使用</a> &nbsp;|&nbsp;
+  <a href="#how-it-works">工作原理</a> &nbsp;|&nbsp;
+  <a href="#screens">截图</a>
 </p>
 
 </div>
 
-**16** 个占位符。**2** 种渲染模式。**2** 个弹窗。CI 在 **10** 种 Linux 和 macOS 工具链组合上运行测试。
+<p align="center">
+  <img src="screens/hero.gif" alt="disk-revamped 展示按层级着色的用量和容量、打开详情弹窗、切换到 Nerd Font 标签、带增长速度的图表以及 options 渲染模式" width="800">
+</p>
+
+```console
+$ disk-revamped refresh
+Refreshed. 45% of / is used.
+$ disk-revamped status percentage
+45%
+```
+
+**16** 个占位符，**2** 种渲染模式，**2** 个弹窗，支持 macOS 和 Linux，需要 tmux **3.2** 或更高版本。
 
 ---
 
-<a id="what-it-does"></a>
+<a id="quick-start"></a>
 
-## 功能
+## 快速开始
 
-插件把 `status-left` 和 `status-right` 中的 `#{disk_*}` 占位符替换为某个挂载点的使用率、可用空间、inode 使用率、读写速度、增长速度、写满剩余时间和使用率历史，以及所有真实磁盘的列表。每个占位符读取缓存在 tmux 选项中的值。`df` 在后台运行，状态栏从不等待。不向磁盘写入任何内容。
-
-它还通过 `prefix + M-d` 打开详情弹窗，另有一个可选的弹窗列出磁盘上最大的项目，以及磁盘越过高阈值时的可选通知。
-
-<a id="requirements"></a>
-
-## 环境要求
+### 前提条件
 
 | 工具 | 版本 | 用途 |
-|:-----|:--------|:-----------|
-| tmux | 3.2 或更高 | 两个弹窗所用的 `display-popup` |
-| bash | 3.2 或更高 | 所有脚本，包括 macOS 的 `/bin/bash` |
-| `df`、`du` | 任意 | 用量和空间扫描，两个平台都自带 |
-| `osascript` 或 `notify-send` | 任意 | 可选，磁盘将满的通知 |
+|:----|:----|:----|
+| tmux | 3.2 或更高 | 家族的最低版本，以及弹窗 |
+| gum | 可选 | `disk-revamped` 的菜单、表格和颜色；没有它时所有命令输出纯文本 |
+| `df`、`du`、`sort` | 任意 | 用量和扫描，两个平台都自带 |
+| `osascript` 或 `notify-send` | 可选 | 达到高阈值时的通知 |
 
-| 数值 | Linux，x86_64 和 arm64 | macOS，Intel 和 Apple Silicon |
-|:------|:------------------------|:-------------------------------|
-| 使用率、已用、总量、可用 | `df -BG` | `/bin/df -g` |
-| 增长速度和写满剩余时间 | `df -Pk` | `/bin/df -Pk` |
-| inode | `df -i` | `df -i` |
-| 读写速度 | `/proc/diskstats`，取 `/sys/block` 中的整块设备 | 无 |
+它可以在使用 BSD、GNU、uutils 或 BusyBox 工具的 Linux 和 macOS 上运行。每个数值都来自系统自带的工具：
+
+| 数值 | Linux | macOS |
+|:----|:------|:------|
+| 用量、已用、总量、可用、增长速度 | `df -Pk` | `/bin/df -Pk` |
+| inode | `df -i` | `/bin/df -i` |
+| 所有磁盘 | `df -h` | `/bin/df -h` |
+| 读写速度 | `/proc/diskstats`，来自 `/sys/block` 的整盘设备 | 无 |
 | 可清除空间 | 无 | `diskutil info` |
 
-macOS 的读取调用 `/bin/df`，因此 `PATH` 中排在前面的 GNU coreutils 不会让它们出错。主机没有数据源的数值显示为空。运行 `src/disk.sh doctor` 可以查看本机提供了什么。
+macOS 读取 `/bin/df`，因此 `PATH` 里 GNU coreutils 排在前面也不受影响。缺少来源时对应的占位符为空，`disk-revamped doctor` 会指出。
 
-<a id="installation"></a>
+### 安装
 
-## 安装
-
-### 使用 TPM
-
-把插件和占位符加入 `~/.tmux.conf`，然后按 `prefix + I`：
+使用 [TPM](https://github.com/tmux-plugins/tpm) 时，把插件加入 `~/.tmux.conf`，然后按 `prefix + I`：
 
 ```tmux
 set -g @plugin 'tmux-revamped/tmux-disk-revamped'
-set -g status-right '#{disk_icon} #{disk_percentage}'
 ```
 
-### 手动安装
+手动安装时，克隆仓库，并在 `~/.tmux.conf` 中运行入口文件：
 
 ```bash
 git clone https://github.com/tmux-revamped/tmux-disk-revamped ~/.tmux/plugins/tmux-disk-revamped
 ```
 
-然后把这一行加到 `~/.tmux.conf` 中设置 `status-left` 和 `status-right` 的行之后，并重新加载 tmux：
-
 ```tmux
 run-shell ~/.tmux/plugins/tmux-disk-revamped/disk-revamped.tmux
 ```
 
+请在插件加载之前设置 `status-left` 或 `status-right`。插件在加载时只替换一次其中的占位符。
+
+在克隆目录里运行 `make install`，还会把 `disk-revamped` 放到 `~/.local/bin`，手册页和补全放到 `~/.local/share`。
+
+### 验证
+
+```bash
+~/.tmux/plugins/tmux-disk-revamped/bin/disk-revamped doctor
+```
+
 <a id="usage"></a>
 
-## 用法
+## 使用
 
-在 `status-left` 或 `status-right` 中写入占位符，插件加载时会替换它们。完整示例见 [`examples/status-right.tmux.conf`](examples/status-right.tmux.conf)。
+插件显示磁盘用了多少，包括已用、可用和总空间、inode 用量、最近读数的图表、增长速度、写满所需时间以及所有磁盘的列表。状态栏打印 tmux 已持有的值，由后台读取来刷新它。
+
+| 占位符 | 输出 |
+|:----|:----|
+| `#{disk_percentage}` | 已用百分比，例如 `55%` |
+| `#{disk_icon}` | 当前用量层级的图标 |
+| `#{disk_fg_color}` | 用量层级的前景样式 |
+| `#{disk_bg_color}` | 用量层级的背景样式 |
+| `#{disk_used}` | 已用空间，单位 G，例如 `55G`，从 1024G 起用 T，例如 `1.8T` |
+| `#{disk_total}` | 总空间，形式相同 |
+| `#{disk_free}` | 可用空间，形式相同 |
+| `#{disk_read}` | Linux 上的读取速度，例如 `1.2MB/s`；macOS 上为空 |
+| `#{disk_write}` | Linux 上的写入速度，形式相同；macOS 上为空 |
+| `#{disk_all}` | 所有已挂载的真实磁盘，例如 `/ 55%, /data 30%` |
+| `#{disk_inodes}` | inode 用量，例如 `i12%` |
+| `#{disk_purgeable}` | macOS 上 APFS 的可清除空间；Linux 上为空 |
+| `#{disk_graph}` | 最近的用量读数，例如 `▄▄▆▆█` |
+| `#{disk_fill_rate}` | 已用空间的变化，例如 `+2.1G/h`，稳定时为空 |
+| `#{disk_full_eta}` | 按该速度写满所需的时间，例如 `3d`，未在增长时为空 |
+| `#{disk_mounts}` | `@disk_revamped_mounts` 中指定的挂载点，形式与 `#{disk_all}` 相同 |
+
+把占位符放进状态栏：
 
 ```tmux
+set -g @disk_revamped_low_fg_color '#[fg=green]'
+set -g @disk_revamped_medium_fg_color '#[fg=yellow]'
+set -g @disk_revamped_high_fg_color '#[fg=red]'
+
 set -g status-right '#{disk_fg_color}#{disk_icon} #{disk_percentage}#[default] #{disk_used}/#{disk_total} '
 ```
 
-| 占位符 | 输出 |
-|:------------|:-------|
-| `#{disk_percentage}` | 使用率，例如 `55%` |
-| `#{disk_icon}` | 当前使用率档位的图标 |
-| `#{disk_fg_color}`、`#{disk_bg_color}` | 当前使用率档位的颜色 |
-| `#{disk_used}`、`#{disk_total}`、`#{disk_free}` | 以 GB 为单位的大小，例如 `100G`，达到 1024G 后切换为 TB，例如 `1.8T` |
-| `#{disk_inodes}` | inode 使用率，例如 `i12%` |
-| `#{disk_purgeable}` | macOS 上 APFS 的可清除空间 |
-| `#{disk_read}`、`#{disk_write}` | Linux 上的读写速度，例如 `1.2MB/s` |
-| `#{disk_fill_rate}` | 已用空间的变化，例如 `+2.1G/h`，没有变化时为空 |
-| `#{disk_full_eta}` | 按该速度写满的剩余时间，例如 `3d`，没有增长时为空 |
-| `#{disk_graph}` | 最近的使用率读数，例如 `▄▄▆▆█` |
-| `#{disk_all}` | 每个已挂载的真实磁盘，例如 `/ 55%, /home 30%` |
-| `#{disk_mounts}` | `@disk_revamped_mounts` 中列出的挂载点，格式相同 |
+同一个示例加上几个选项，见 [examples/status-right.tmux.conf](examples/status-right.tmux.conf)。
 
-`#{disk_all}` 列出 `/dev/` 文件系统，在 macOS 上排除 `/Volumes/`，在 Linux 上排除 `/boot` 和 `/snap`。
+### 标签和宽度
+
+`@disk_revamped_<metric>_label` 在某个指标的值不为空时，在它之前打印图标或文字。把 `@disk_revamped_icons` 设为 `nerd`，会给下面每个指标加上 Nerd Font 图标。指标自己的标签优先于整套图标，留空的标签表示默认值，所以图标仍然保留。默认的 `ascii` 不加标签。指标有 `percentage`、`used`、`total`、`free`、`read`、`write`、`inodes`、`purgeable`、`graph`、`fill_rate`、`full_eta`、`mounts` 和 `all`，在命令选项中用连字符书写，例如 `--fill-rate-label`。
+
+| 指标 | `nerd` 图标 |
+|:----|:----------|
+| `percentage` | U+F02CA |
+| `used` | U+F01BC |
+| `total` | U+F01BC |
+| `free` | U+F0770 |
+| `read` | U+F01DA |
+| `write` | U+F0552 |
+| `inodes` | U+F0645 |
+| `purgeable` | U+F00E2 |
+| `graph` | U+F07B1 |
+| `fill_rate` | U+F0535 |
+| `full_eta` | U+F051F |
+| `mounts` | U+F0253 |
+| `all` | U+F0253 |
+
+把 `@disk_revamped_fixed_width` 设为 `on`，会把每个数值在左侧补到自然宽度：用量和 inode 为四个字符，读写速度为九个字符，所以从 `9%` 变成 `42%` 时其余部分不会移位。`@disk_revamped_<metric>_width` 设置单个指标的宽度，并优先于固定宽度。更长的值不会被截断。
+
+### 渲染模式
+
+默认情况下每个占位符变成一次 `#()` 调用，tmux 在每次重绘状态栏时重新运行它。把 `@disk_revamped_render` 设为 `options` 后，每个占位符变成对选项的读取，例如 `#{E:@disk_revamped_out_percentage}`。每个服务器随后由一个后台进程每隔 `@disk_revamped_interval` 秒读取磁盘，并用一次 tmux 调用写入所有值，所以它们同时变化。
+
+```tmux
+set -g @disk_revamped_render 'options'
+set -g @disk_revamped_fixed_width 'on'
+```
+
+### 层级颜色
+
+层级样式默认为空，所以在你设置之前 `#{disk_fg_color}` 和 `#{disk_bg_color}` 不会输出任何内容。下面的配色把低映射为绿色，中为黄色，高为红色：
+
+| 主题 | 低 | 中 | 高 |
+|:----|:----|:----|:----|
+| Catppuccin Mocha | `#a6e3a1` | `#f9e2af` | `#f38ba8` |
+| Dracula | `#50fa7b` | `#f1fa8c` | `#ff5555` |
+| Nord | `#a3be8c` | `#ebcb8b` | `#bf616a` |
+| Gruvbox Dark | `#b8bb26` | `#fabd2f` | `#fb4934` |
+| Tokyo Night | `#9ece6a` | `#e0af68` | `#f7768e` |
+| Solarized Dark | `#859900` | `#b58900` | `#dc322f` |
+
+每个值放进一个样式里，例如 `set -g @disk_revamped_low_fg_color '#[fg=#a6e3a1]'`。
+
+| 命令 | 作用 |
+|:----|:----|
+| `disk-revamped apply` | 绑定弹窗按键并立即填充占位符；入口文件在 tmux 加载插件时运行它 |
+| `disk-revamped list` | 打印 `apply` 会发送的所有命令，不做任何改动；`--json` 输出一个对象 |
+| `disk-revamped status NAME` | 打印一个占位符，例如 `percentage`、`used` 或 `graph`；状态栏运行它 |
+| `disk-revamped refresh` | 立即读取磁盘并说明用了多少 |
+| `disk-revamped card` | 立即读取全部内容，每个数值一行，然后是所有磁盘，按终端大小裁剪 |
+| `disk-revamped scan` | 列出扫描路径下最大的项目及其大小 |
+| `disk-revamped popup` | 在 tmux 弹窗中打开卡片；弹窗按键运行它 |
+| `disk-revamped eat` | 在 tmux 弹窗中打开扫描；eat 按键运行它 |
+| `disk-revamped daemon` | 为 `options` 渲染模式在每个周期发布占位符；`apply` 会启动它 |
+| `disk-revamped doctor` | 每个依赖一行：各数值的来源工具或文件、终端大小、通知方式以及被放过的按键 |
+| `disk-revamped version` | 版本，然后是 tmux 版本 |
+| `disk-revamped help` | 帮助页；`man disk-revamped` 记录相同的命令和设置 |
+| `disk-revamped` | 在终端中显示菜单 |
 
 <a id="configuration"></a>
 
 ## 配置
 
+每个选项也是带连字符的命令选项，例如 `--interval 2`，也是环境变量，例如 `DISK_REVAMPED_INTERVAL`；命令行优先于环境变量，环境变量优先于 tmux 选项。空的 tmux 选项表示默认值，命令行或环境变量中的空值按原样使用。`doctor` 会指出持有插件不认识的值的设置。传给 `apply` 的设置会带到按键和每一次状态调用上。
+
+### 读取
+
 | 选项 | 默认值 | 含义 |
-|:-------|:--------|:--------|
-| `@disk_revamped_mount` | `/` | 用量占位符报告的挂载点；在 macOS 上 `/` 是密封的系统卷，要查看你的文件所占的空间，请设置为 `/System/Volumes/Data` |
-| `@disk_revamped_interval` | `30` | 用量读数保持有效的秒数 |
-| `@disk_revamped_detail_interval` | `60` | `#{disk_all}` 列表保持有效的秒数 |
-| `@disk_revamped_render` | 空 | `options` 开启选项渲染模式，见[工作原理](#how-it-works) |
-| `@disk_revamped_percentage_format` | `%s%%` | 使用率的 printf 格式 |
-| `@disk_revamped_size_format` | `%sG` | 小于 1024G 的大小的 printf 格式 |
-| `@disk_revamped_medium_thresh`、`@disk_revamped_high_thresh` | `70`、`90` | 中档和高档开始的使用率百分比 |
-| `@disk_revamped_low_icon` | `▰▱▱` | 低档的图标 |
-| `@disk_revamped_medium_icon` | `▰▰▱` | 中档的图标 |
-| `@disk_revamped_high_icon` | `▰▰▰` | 高档的图标 |
-| `@disk_revamped_{low,medium,high}_{fg,bg}_color` | 空 | 每个档位的颜色 |
-| `@disk_revamped_separator` | `, ` | `#{disk_all}` 和 `#{disk_mounts}` 中磁盘之间的文字 |
-| `@disk_revamped_mounts` | 空 | `#{disk_mounts}` 的挂载点，用空格或逗号分隔 |
-| `@disk_revamped_inodes_format` | `i%s%%` | `#{disk_inodes}` 的 printf 格式 |
+|:----|:----|:----|
+| `@disk_revamped_mount` | `/` | 用量类占位符报告的挂载点；macOS 上 `/` 是只读的系统卷，设为 `/System/Volumes/Data` 才能看到你的文件占用的空间 |
+| `@disk_revamped_mounts` | empty | `#{disk_mounts}` 的挂载点，空格或逗号分隔；不存在的会被忽略 |
+| `@disk_revamped_interval` | `30` | 读数保持新鲜的秒数 |
+| `@disk_revamped_detail_interval` | `60` | 所有磁盘列表保持新鲜的秒数 |
+| `@disk_revamped_render` | `jobs` | `options` 读取已发布的选项，而不是运行 `#()` 调用；其他值都按 `jobs` 处理 |
 | `@disk_revamped_history_length` | `20` | `#{disk_graph}` 保留的读数个数 |
-| `@disk_revamped_icons` | `ascii` | `nerd` 为每个指标加上 Nerd Font 字形标签 |
-| `@disk_revamped_<metric>_label` | 空 | 值不为空时显示在某个指标前的文字；`''` 去掉 `nerd` 标签 |
-| `@disk_revamped_fixed_width` | `off` | `on` 在左侧填充每个值到其最大宽度 |
-| `@disk_revamped_<metric>_width` | 空 | 某个指标的填充宽度，优先于固定宽度 |
-| `@disk_revamped_notify` | `0` | `1` 在使用率达到 `@disk_revamped_high_thresh` 时发送通知 |
-| `@disk_revamped_popup_key` | `M-d` | 详情弹窗的 prefix 按键；`off` 不绑定 |
-| `@disk_revamped_eat_key` | 空 | 最大项目弹窗的 prefix 按键；为空时不绑定 |
-| `@disk_revamped_eat_path` | 挂载点 | 空间扫描列出的目录 |
-| `@disk_revamped_eat_count` | `10` | 扫描列出的最大项目个数 |
-| `@disk_revamped_eat_interval` | `60` | 扫描结果保持有效的秒数 |
+| `@disk_revamped_notify` | `0` | `1` 表示用量达到 `@disk_revamped_high_thresh` 时发送通知，回落后再次达到时会再发 |
 
-除图标和两个颜色外，标签适用于所有占位符。宽度设置不会截断较长的值。
+### 层级
 
-### 主题配色
+| 选项 | 默认值 | 含义 |
+|:----|:----|:----|
+| `@disk_revamped_medium_thresh` | `70` | 层级变为中的用量百分比 |
+| `@disk_revamped_high_thresh` | `90` | 层级变为高的用量百分比，也是发送通知的阈值 |
+| `@disk_revamped_low_icon` | `▰▱▱` | 低层级的图标 |
+| `@disk_revamped_medium_icon` | `▰▰▱` | 中层级的图标 |
+| `@disk_revamped_high_icon` | `▰▰▰` | 高层级的图标 |
+| `@disk_revamped_low_fg_color` | empty | 低层级的前景样式，例如 `#[fg=green]` |
+| `@disk_revamped_medium_fg_color` | empty | 中层级的前景样式 |
+| `@disk_revamped_high_fg_color` | empty | 高层级的前景样式 |
+| `@disk_revamped_low_bg_color` | empty | 低层级的背景样式 |
+| `@disk_revamped_medium_bg_color` | empty | 中层级的背景样式 |
+| `@disk_revamped_high_bg_color` | empty | 高层级的背景样式 |
 
-颜色选项默认为空，因此在设置之前插件不添加颜色。下面每个配色把低、中、高三档分别设为绿色、黄色和红色：
+### 格式和标签
 
-<details>
-<summary>Catppuccin Mocha</summary>
+| 选项 | 默认值 | 含义 |
+|:----|:----|:----|
+| `@disk_revamped_percentage_format` | `%s%%` | 用量的 printf 格式 |
+| `@disk_revamped_size_format` | `%sG` | 低于 1024G 的容量的 printf 格式；从 1024G 起是带一位小数的 T |
+| `@disk_revamped_inodes_format` | `i%s%%` | `#{disk_inodes}` 的 printf 格式 |
+| `@disk_revamped_separator` | `, ` | `#{disk_all}` 和 `#{disk_mounts}` 中磁盘之间的文本 |
+| `@disk_revamped_icons` | `ascii` | `nerd` 给每个值加上 Nerd Font 图标 |
+| `@disk_revamped_<metric>_label` | empty | 打印在某个值之前的文本，仅在值不为空时 |
+| `@disk_revamped_fixed_width` | `off` | `on` 把每个数值在左侧补到自然宽度，从 `9%` 变成 `42%` 时其余部分不会移位 |
+| `@disk_revamped_<metric>_width` | empty | 把某个值补到这个字符数。更长的值不会被截断 |
 
-```tmux
-set -g @disk_revamped_low_fg_color '#[fg=#a6e3a1]'
-set -g @disk_revamped_medium_fg_color '#[fg=#f9e2af]'
-set -g @disk_revamped_high_fg_color '#[fg=#f38ba8]'
-```
+### 按键和扫描
 
-</details>
-
-<details>
-<summary>Dracula</summary>
-
-```tmux
-set -g @disk_revamped_low_fg_color '#[fg=#50fa7b]'
-set -g @disk_revamped_medium_fg_color '#[fg=#f1fa8c]'
-set -g @disk_revamped_high_fg_color '#[fg=#ff5555]'
-```
-
-</details>
-
-<details>
-<summary>Nord</summary>
-
-```tmux
-set -g @disk_revamped_low_fg_color '#[fg=#a3be8c]'
-set -g @disk_revamped_medium_fg_color '#[fg=#ebcb8b]'
-set -g @disk_revamped_high_fg_color '#[fg=#bf616a]'
-```
-
-</details>
-
-<details>
-<summary>Gruvbox Dark</summary>
-
-```tmux
-set -g @disk_revamped_low_fg_color '#[fg=#b8bb26]'
-set -g @disk_revamped_medium_fg_color '#[fg=#fabd2f]'
-set -g @disk_revamped_high_fg_color '#[fg=#fb4934]'
-```
-
-</details>
-
-<details>
-<summary>Tokyo Night</summary>
-
-```tmux
-set -g @disk_revamped_low_fg_color '#[fg=#9ece6a]'
-set -g @disk_revamped_medium_fg_color '#[fg=#e0af68]'
-set -g @disk_revamped_high_fg_color '#[fg=#f7768e]'
-```
-
-</details>
-
-<details>
-<summary>Solarized Dark</summary>
-
-```tmux
-set -g @disk_revamped_low_fg_color '#[fg=#859900]'
-set -g @disk_revamped_medium_fg_color '#[fg=#b58900]'
-set -g @disk_revamped_high_fg_color '#[fg=#dc322f]'
-```
-
-</details>
+| 选项 | 默认值 | 含义 |
+|:----|:----|:----|
+| `@disk_revamped_popup_key` | `M-d` | 打开详情弹窗的前缀键。`off` 表示不绑定 |
+| `@disk_revamped_eat_key` | empty | 打开最大项目弹窗的前缀键；留空或 `off` 表示不绑定 |
+| `@disk_revamped_eat_path` | the mount | 扫描所列出的文件夹 |
+| `@disk_revamped_eat_count` | `10` | 扫描列出多少个最大的项目 |
+| `@disk_revamped_eat_interval` | `60` | 扫描结果保持新鲜的秒数 |
 
 ### 内部状态
 
-以下选项由插件自己写入，请不要设置。
+插件自己写入这些选项，请不要设置它们。
 
 | 选项 | 内容 |
-|:-------|:------|
-| `@disk_revamped_published` | 加载时在 `status-left` 和 `status-right` 中找到的指标；inode、可清除空间、增长速度和挂载点的探测只在其指标列在这里时运行 |
-| `@disk_revamped_out_<metric>` | 选项模式中每个指标发布的值 |
-| `@disk_revamped_ticker_pid` | 选项模式后台进程的 pid |
-| `@disk_revamped_option_names` | 后台进程每个周期用一次调用读取的选项 |
-| `@disk_revamped_notified` | 发送通知后为 `1`，直到使用率降到阈值以下 |
-| `@disk_revamped_history` | `#{disk_graph}` 所用的最近使用率读数 |
-| `@disk_revamped_{percent,used,total,free,all,read,write,inodes,purgeable,mounts,fill_rate,full_eta,eat}` | 缓存的读数，各带一个 `_ts` 时间戳 |
-| `@disk_revamped_{rd_raw,wr_raw,io_ts,used_raw,fill_ts}` | 计算速度所依据的上一次计数 |
+|:----|:----|
+| `@disk_revamped_published` | 状态栏使用的指标，加载时记录，只读取这些 |
+| `@disk_revamped_history` | `#{disk_graph}` 背后的最近读数 |
+| `@disk_revamped_out_<metric>` | options 模式下每个指标的渲染结果 |
+| `@disk_revamped_ticker_pid` | options 模式后台进程的进程号 |
+| `@disk_revamped_notified` | 发出通知后为 `1`，直到用量回落到阈值以下 |
+| `@disk_revamped_percent` and the other figures, `_ts`, `_lock` | 保存的读数、每次读取的时间和刷新锁；`@disk_revamped_mounts_list` 保存设置 `@disk_revamped_mounts` 的读数 |
 
-<a id="key-bindings"></a>
+## 按键绑定
 
-## 快捷键
+| 按键 | 作用 | 默认 |
+|:----|:----|:----|
+| `prefix + M-d` | 在弹窗中打开卡片：各数值和所有磁盘，按弹窗大小裁剪。按 Enter 关闭 | 已绑定 |
+| 未绑定 | 打开最大项目弹窗。按 Enter 关闭 | `@disk_revamped_eat_key` |
 
-| 按键 | 操作 | 选项 |
-|:----|:-------|:-------|
-| `prefix + M-d` | 打开详情弹窗 | `@disk_revamped_popup_key` |
-| 未绑定 | 打开最大项目弹窗 | `@disk_revamped_eat_key` |
-
-详情弹窗显示挂载点、使用率、已用、可用和总空间，以及 `#{disk_all}` 列表。最大项目弹窗在后台运行 `du`，只在同一个文件系统内扫描，并包含以点开头的项目。第一次打开时，在结果缓存之前显示 `Scanning`。两个弹窗都按 Enter 关闭。
+`@disk_revamped_popup_key` 可以指定另一个按键，`off` 表示不绑定。当默认按键已被别的功能占用时会被放过，`disk-revamped doctor` 会说明。`@disk_revamped_eat_key` 绑定最大项目弹窗，需要自行开启。
 
 ```tmux
 set -g @disk_revamped_eat_key 'M-u'
@@ -247,32 +274,137 @@ set -g @disk_revamped_eat_key 'M-u'
 
 ## 工作原理
 
-在默认的作业模式中，每个占位符都会变成调用 [`src/disk.sh`](src/disk.sh) 的 `#()`。调用会立即输出缓存的值。当缓存的用量比 `@disk_revamped_interval` 旧时，它还会启动一次后台刷新；刷新受锁保护，并行的调用不会再启动第二次。
+[`disk-revamped.tmux`](disk-revamped.tmux) 在 tmux 加载插件时运行一次。它把 `status-left` 和 `status-right` 用到的指标记录到 `@disk_revamped_published`，然后把每个占位符替换为对 [`bin/disk-revamped`](bin/disk-revamped) 的调用，在 `options` 模式下则替换为对选项的读取并启动后台进程。
 
-tmux 每次重绘状态栏都会运行所有 `#()`。一条状态栏上有多个插件时，大约每秒一次。选项模式去掉了这些调用：
+在默认模式下，每个 `#()` 调用立即返回已保存的读数。读数超过间隔后，调用会在后台启动一次刷新并加锁，所以同一时间只有一次刷新在运行。一次 `df -Pk` 给出用量和容量，容量向上取整到整数 G；inode、可清除空间、分盘速度、增长速度和磁盘列表读取成本更高，所以只在状态栏用到对应占位符时才运行。一个 `awk` 把读数转换成所有数值，一次 tmux 调用把它们存起来。
 
-```tmux
-set -g @disk_revamped_render 'options'
-set -g @disk_revamped_fixed_width 'on'
-```
+读写速度和增长速度把每次读数与上一次比较。挂载路径来自外部，所以其中的每个 `#` 在到达状态栏之前都会加倍。读取、数值和格式化位于 [`lib/disk.sh`](lib/disk.sh)，设置表位于 [`lib/state.sh`](lib/state.sh)。
 
-此时每个占位符变成类似 `#{E:@disk_revamped_out_percentage}` 的选项读取。每个服务器有一个后台进程，每 `@disk_revamped_interval` 秒读取一次磁盘，用一次 tmux 调用写入状态栏用到的所有值，然后只重绘一次。服务器停止，或重新加载配置启动了接替的进程时，它就会退出。
+<a id="screens"></a>
 
-读写速度和增长速度都把每次读数与上一次比较。挂载路径在缓存前会把每个 `#` 加倍，因此路径无法注入 tmux 格式。
+## 截图
 
-<a id="development"></a>
+<details>
+<summary>每一张截图都在真实的 tmux 中用 <code>make screens</code> 录制，并在状态栏上显示每个按键</summary>
+<br>
+
+<table>
+<tr>
+<td width="50%" valign="top"><img src="screens/status.png" alt="disk-revamped: 带层级图标和颜色的用量，以及容量和可用空间"><br><sub>带层级图标和颜色的用量，以及容量和可用空间，来自 <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/popup.png" alt="disk-revamped: prefix M-d 在弹窗中打开详情卡片"><br><sub><code>prefix M-d</code> 在弹窗中打开详情卡片，来自 <code>hero.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/icons.png" alt="disk-revamped: @disk_revamped_icons 设为 nerd 会给每个指标加上图标"><br><sub><code>@disk_revamped_icons</code> 设为 <code>nerd</code> 会给每个指标加上图标，来自 <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/graph.png" alt="disk-revamped: 图表、用量、增长速度和写满所需时间"><br><sub>图表、用量、增长速度和写满所需时间，来自 <code>hero.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/options.png" alt="disk-revamped: 在 options 渲染模式下，每个占位符读取一个 tmux 选项"><br><sub>在 <code>options</code> 渲染模式下，每个占位符读取一个 tmux 选项，来自 <code>hero.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/card.png" alt="disk-revamped: card 打印每个数值和每块磁盘"><br><sub><code>card</code> 打印每个数值和每块磁盘，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/sizes.png" alt="disk-revamped: 已用、可用和总空间，以及 macOS 上的可清除空间"><br><sub>已用、可用和总空间，以及 macOS 上的可清除空间，来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/size-format.png" alt="disk-revamped: @disk_revamped_size_format 决定低于 1024G 的容量格式"><br><sub><code>@disk_revamped_size_format</code> 决定低于 1024G 的容量格式，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/colors.png" alt="disk-revamped: 自定义的层级图标和颜色"><br><sub>自定义的层级图标和颜色，来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/tiers.png" alt="disk-revamped: @disk_revamped_medium_thresh、@disk_revamped_high_thresh 和各层级图标"><br><sub><code>@disk_revamped_medium_thresh</code>、<code>@disk_revamped_high_thresh</code> 和各层级图标，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/format.png" alt="disk-revamped: @disk_revamped_percentage_format 决定用量的格式"><br><sub><code>@disk_revamped_percentage_format</code> 决定用量的格式，来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/inodes-format.png" alt="disk-revamped: inode 用量和 @disk_revamped_inodes_format"><br><sub>inode 用量和 <code>@disk_revamped_inodes_format</code>，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/fixed.png" alt="disk-revamped: @disk_revamped_fixed_width 把每个数值补到自然宽度"><br><sub><code>@disk_revamped_fixed_width</code> 把每个数值补到自然宽度，来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/width.png" alt="disk-revamped: @disk_revamped_inodes_width 把单个指标补到自己的宽度"><br><sub><code>@disk_revamped_inodes_width</code> 把单个指标补到自己的宽度，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/labels.png" alt="disk-revamped: 单个指标之前的自定义标签"><br><sub>单个指标之前的自定义标签，来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/mounts.png" alt="disk-revamped: @disk_revamped_mounts 列出你指定的挂载点"><br><sub><code>@disk_revamped_mounts</code> 列出你指定的挂载点，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/separator.png" alt="disk-revamped: @disk_revamped_separator 位于磁盘之间"><br><sub><code>@disk_revamped_separator</code> 位于磁盘之间，来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/all.png" alt="disk-revamped: 一个占位符显示所有磁盘"><br><sub>一个占位符显示所有磁盘，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/mount.png" alt="disk-revamped: @disk_revamped_mount 选择用量报告的挂载点"><br><sub><code>@disk_revamped_mount</code> 选择用量报告的挂载点，来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/history.png" alt="disk-revamped: @disk_revamped_history_length 决定图表保留多少读数"><br><sub><code>@disk_revamped_history_length</code> 决定图表保留多少读数，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/fill.png" alt="disk-revamped: 增长速度和写满所需时间"><br><sub>增长速度和写满所需时间，来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/notify.png" alt="disk-revamped: @disk_revamped_notify 在达到高阈值时发送通知"><br><sub><code>@disk_revamped_notify</code> 在达到高阈值时发送通知，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/popup-key.png" alt="disk-revamped: @disk_revamped_popup_key 为弹窗指定另一个按键"><br><sub><code>@disk_revamped_popup_key</code> 为弹窗指定另一个按键，来自 <code>features.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/eat.png" alt="disk-revamped: @disk_revamped_eat_key 打开最大项目弹窗，由 @disk_revamped_eat_path、@disk_revamped_eat_count 和 @disk_revamped_eat_interval 调整"><br><sub><code>@disk_revamped_eat_key</code> 打开最大项目弹窗，由 <code>@disk_revamped_eat_path</code>、<code>@disk_revamped_eat_count</code> 和 <code>@disk_revamped_eat_interval</code> 调整，来自 <code>features.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/version.png" alt="disk-revamped: 版本"><br><sub>版本，来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/error.png" alt="disk-revamped: 未知命令"><br><sub>未知命令，来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/status-command.png" alt="disk-revamped: status percentage 和 status graph 各打印一个占位符"><br><sub><code>status percentage</code> 和 <code>status graph</code> 各打印一个占位符，来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/refresh.png" alt="disk-revamped: refresh 立即读取磁盘"><br><sub><code>refresh</code> 立即读取磁盘，来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/list.png" alt="disk-revamped: list 打印每一个绑定"><br><sub><code>list</code> 打印每一个绑定，来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/json.png" alt="disk-revamped: list --json 把同一个计划作为一个对象打印"><br><sub><code>list --json</code> 把同一个计划作为一个对象打印，来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/doctor.png" alt="disk-revamped: doctor"><br><sub><code>doctor</code>，来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/menu.png" alt="disk-revamped: 菜单"><br><sub>菜单，来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/menu-card.png" alt="disk-revamped: 从菜单打开的卡片"><br><sub>从菜单打开的卡片，来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/scan.png" alt="disk-revamped: scan 列出最大的项目"><br><sub><code>scan</code> 列出最大的项目，来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/accent.png" alt="disk-revamped: 来自 DISK_REVAMPED_ACCENT 的强调色"><br><sub>来自 <code>DISK_REVAMPED_ACCENT</code> 的强调色，来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/plain-menu.png" alt="disk-revamped: 没有 gum 的菜单"><br><sub>没有 gum 的菜单，来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/plain-card.png" alt="disk-revamped: 没有 gum 时从菜单打开的 card"><br><sub>没有 gum 时从菜单打开的 <code>card</code>，来自 <code>stills.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/plain-doctor.png" alt="disk-revamped: 没有 gum 的 doctor"><br><sub>没有 gum 的 <code>doctor</code>，来自 <code>stills.tape</code></sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="screens/themes.png" alt="disk-revamped: 六个主题下的标题"><br><sub>六个主题下的标题，来自 <code>themes.tape</code></sub></td>
+<td width="50%" valign="top"><img src="screens/help.png" alt="disk-revamped: 帮助页"><br><sub>帮助页，来自 <code>help.tape</code></sub></td>
+</tr>
+</table>
+
+录制运行的是真实的插件和 tmux。`df`、`diskutil`、`osascript` 和 `du` 由小脚本代替，所以画面上的数值来自它们。录制在 macOS 上进行，macOS 没有分盘计数器，所以 `#{disk_read}` 和 `#{disk_write}` 在那里不显示内容。`@disk_revamped_interval` 和 `@disk_revamped_detail_interval` 设置在录制用的 tmux 配置中。
+
+</details>
+
+## 可移植性
+
+插件使用 POSIX `sh`。CI 在下面每一行上运行所有测试套件。
+
+| Shell | 状态 |
+|:------|:----|
+| `dash`、macOS 上的 `/bin/sh` | 支持 |
+| `bash` 3.2 和 5.x，系统自带的 `zsh` 和 Homebrew 的 `zsh` | 支持 |
+
+| 系统 | 状态 |
+|:----|:----|
+| macOS | Apple Silicon 和 Intel 上的 Tahoe，分别使用系统自带工具、Homebrew 的 GNU 工具和 Homebrew 的 uutils |
+| Linux | x86_64 和 arm64 上的 Ubuntu 26.04，分别使用 GNU coreutils、uutils 和 BusyBox |
 
 ## 开发
 
 | 命令 | 运行内容 |
-|:--------|:-------------|
-| `make test` | [`test/`](test) 下的 bats 测试 |
-| `make lint` | 对所有 shell 文件运行 shellcheck |
-| `make coverage` | 在 Linux 上用 kcov 统计行覆盖率，低于 95% 时失败 |
+|:----|:-----|
+| `make fmt` | 对每个脚本运行 shfmt `-i 2` |
+| `make lint` | shfmt、ShellCheck、mandoc、yamllint 和 actionlint，结果必须为零 |
+| `make test` | 用系统 `sh` 运行 bats 测试套件 |
+| `make test-all` | 用每个已安装的 shell 运行套件，macOS 上包括 bash 和 zsh 的两种版本 |
+| `make test-linux` | 在 Ubuntu 容器中运行套件 |
+| `make coverage` | 在这台 Mac 和 Ubuntu 容器中运行 bashcov，合并后要求达到 100% |
+| `make screens` | 在 macOS 上用 VHS 在 tmux 中录制上面的截图，运行的是真实的插件 |
+| `make install` | 把命令、手册页和补全安装到 `PREFIX` 下 |
 
-在 macOS 上，运行 `brew bundle` 会根据 [`Brewfile`](Brewfile) 安装这些目标用到的所有工具。
+在 macOS 上，`brew bundle` 会按 [`Brewfile`](Brewfile) 安装这些目标调用的所有工具。
 
-<a id="license"></a>
+提交遵循 Conventional Commits 格式，直接进入 `main`。`main` 上的 `ci` 通过后，`release.yml` 运行 semantic-release：自上一个标签以来的每个 `feat` 或 `fix` 都会发布一个版本，更新版本常量，并把说明加入 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 许可证
 

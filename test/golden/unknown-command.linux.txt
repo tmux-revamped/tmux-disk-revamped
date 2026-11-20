@@ -1,0 +1,3 @@
+$ disk-revamped frobnicate
+disk-revamped: unknown command 'frobnicate'. run 'disk-revamped help' for usage.
+exit 1

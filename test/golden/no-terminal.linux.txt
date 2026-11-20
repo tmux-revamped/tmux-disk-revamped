@@ -1,0 +1,3 @@
+$ disk-revamped
+disk-revamped: no command given. run 'disk-revamped help' for usage.
+exit 1
