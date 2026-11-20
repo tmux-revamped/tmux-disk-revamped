@@ -1,5 +1,23 @@
 # Changelog
 
+# [4.0.0](https://github.com/tmux-revamped/tmux-disk-revamped/compare/v3.0.0...v4.0.0) (2026-11-20)
+
+
+* feat!: rewrite the plugin in POSIX sh ([004d42d](https://github.com/tmux-revamped/tmux-disk-revamped/commit/004d42d2cadc4de7a849cfa1c3434c6856c011b7))
+
+
+### BREAKING CHANGES
+
+* the script moved from src/disk.sh to
+bin/disk-revamped. A placeholder is printed by "disk-revamped status
+NAME", where it was "disk.sh NAME", "disk.sh start" is now
+"disk-revamped apply", and the popup view "eat_view" is now "scan".
+bash is no longer required. A tmux option set to nothing now means
+its default, where a separator or a label set to nothing used to
+stay empty. The environment variable DISK_HISTORY_MAX is now
+DISK_REVAMPED_HISTORY_LENGTH, and CACHE_*, PLUGIN_LOG_NS and
+DISK_SELF are gone.
+
 # [3.0.0](https://github.com/tmux-revamped/tmux-disk-revamped/compare/v2.0.3...v3.0.0) (2026-11-18)
 
 
